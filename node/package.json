@@ -1,0 +1,15 @@
+{
+  "name": "investing-bot",
+  "version": "1.0.0",
+  "description": "Testing for groq app",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jiahao",
+  "license": "ISC",
+  "dependencies": {
+    "@langchain/community": "^0.2.31",
+    "langchain": "^0.2.17"
+  }
+}
