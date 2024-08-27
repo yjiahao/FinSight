@@ -57,7 +57,7 @@ const docs = await loader.load();
 // define the character splitter
 const splitter = new RecursiveCharacterTextSplitter(
     {
-        chunkSize: 400,
+        chunkSize: 200,
         chunkOverlap: 50
     }
 );
@@ -66,7 +66,10 @@ const splitter = new RecursiveCharacterTextSplitter(
 const splitDocs = await splitter.splitDocuments(docs);
 
 // we only want to retrieve the most relevant documents, so we make use of a vector store
-const embeddings = new HuggingFaceInferenceEmbeddings();
+// create LLM to help us embed the splitted documents and queries
+const embeddings = new HuggingFaceInferenceEmbeddings(
+    'sentence-transformers/all-mpnet-base-v2'
+);
 
 const vectorStore = await MemoryVectorStore.fromDocuments(
     splitDocs,
@@ -76,13 +79,12 @@ const vectorStore = await MemoryVectorStore.fromDocuments(
 // data retrieval
 const retriever = vectorStore.asRetriever(
     {
-        k: 3
+        k: 10
     }
 );
 
-// troubleshoot this, not sure why not working
 // https://js.langchain.com/v0.1/docs/use_cases/chatbots/retrieval/
-const loadedDocs = retriever.invoke("What happened in the article?");
+const loadedDocs = await retriever.invoke("Summarize the events in the article");
 console.log(loadedDocs);
 
 // const response = await retrievalChain.invoke(
@@ -92,3 +94,6 @@ console.log(loadedDocs);
 // );
 
 // console.log(response);
+
+// TODO: fix the splitting/loading of documents to ensure that we can capture most of the content
+// read more on Cheerio to get the page content out (should be some method to do so i guess)
