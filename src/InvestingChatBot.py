@@ -7,6 +7,8 @@ from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.tools import tool
 
+import yfinance as yf
+
 from dotenv import load_dotenv
 
 # load API keys
@@ -50,7 +52,21 @@ def calculate_roe(net_income: float, shareholders_equity: float):
     '''
     return net_income / shareholders_equity
 
+# NOTE: need to see if we can work with just giving the entire balance sheet, or extract components of it to reduce token size
+@tool
+def get_balance_sheet(ticker: str):
+    '''
+    Get the balance sheet of the company given a ticker symbol.
 
+    Args:
+        ticker (str): The ticker symbol of the company
+
+    Returns:
+        dict: The balance sheet of the company
+    '''
+    
+    stock = yf.Ticker(ticker)
+    return stock.balance_sheet.to_string()
 
 class InvestingChatBot:
 
@@ -68,7 +84,7 @@ class InvestingChatBot:
                     ### **How to Answer User Questions**
                     - If a user asks about a specific stock, provide a well-reasoned evaluation based on Buffet's principles.  
                     - If necessary, use the **available tools** to gather relevant data before forming a response.  
-                    - **Before using a tool**, think carefully about whether it is useful for answering the question. If a tool is not needed, rely on your own knowledge.  
+                    - **Before using a tool**, think carefully about whether the tool could be useful for answering the question. If a tool is not needed, rely on your own knowledge.  
                     - If you do not have enough information to provide an answer, simply respond with: **"I don't know."**  
 
                     ### **Context Awareness**
@@ -84,7 +100,8 @@ class InvestingChatBot:
     # tools for all the agents to use
     tools = [
         calculate_graham_number,
-        calculate_roe
+        calculate_roe,
+        get_balance_sheet
     ]
 
     def __init__(self, model: str, temperature: float, session_id: str):
@@ -144,7 +161,7 @@ class InvestingChatBot:
         )
         
         agent = create_tool_calling_agent(chat, self.tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=self.tools)
+        agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True)
 
         agent_with_chat_history = RunnableWithMessageHistory(
             agent_executor,
