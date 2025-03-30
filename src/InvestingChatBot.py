@@ -54,9 +54,9 @@ class InvestingChatBot:
     tools = [
         calculate_graham_number,
         calculate_roe,
-        get_balance_sheet,
-        get_income_statement,
-        get_cash_flow,
+        get_pe_ratio,
+        get_earnings_yield,
+        calculate_roa
     ]
 
     def __init__(self, model: str, temperature: float, session_id: str):

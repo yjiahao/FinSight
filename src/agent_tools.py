@@ -9,11 +9,12 @@ import numpy as np
 # TODO: what happens if we need data from different dataframes? E.g. balance sheet, income statement for calculating ROE
 # at the moment, just letting agent decide how to use the tools and letting it chain them together
 
+# TODO: Need some way to get the intent of the user from the query, then use the tools accordingly
+
 # tools for the LLM agent to use
 
 # functions to access financial statements
 # NOTE: need to see if we can work with just giving the entire balance sheet, or extract components of it to reduce token size
-@tool
 def get_balance_sheet(ticker: str) -> dict:
     '''
     Get the balance sheet of the company given a ticker symbol.
@@ -55,7 +56,6 @@ def get_balance_sheet(ticker: str) -> dict:
 
     return bs.to_dict()
 
-@tool
 def get_income_statement(ticker: str) -> dict:
     '''
     Get the income statement of the company given a ticker symbol.
@@ -84,7 +84,6 @@ def get_income_statement(ticker: str) -> dict:
 
     return income_statement.to_dict()
 
-@tool
 def get_cash_flow(ticker: str) -> dict:
     '''
     Get the cash flow statement of the company given a ticker symbol.
@@ -108,17 +107,21 @@ def get_cash_flow(ticker: str) -> dict:
     return cash_flow.to_dict()
 
 @tool
-def calculate_graham_number(income_statement: dict, balance_sheet: dict) -> dict:
+def calculate_graham_number(ticker: str) -> dict:
     '''
-    Calculates the Graham Number
+    Calculates the Graham Number. It is a measure of a stock's intrinsic value, based on the company's earnings per share (EPS) and book value per share (BVPS).
+    But it does not return astock price, it returns the Graham Number.
 
     Args:
-        income_statement (dict): The income statement of the company
-        balance_sheet (dict): The balance sheet of the company
+        ticker (str): The ticker symbol of the company
 
     Returns:
         graham_number (dict): The Graham Number of the company over a few years, with date as key and Graham Number as value
     '''
+
+    # get balance sheet and income statements
+    income_statement = get_income_statement(ticker)
+    balance_sheet = get_balance_sheet(ticker)
 
     diluted_eps = income_statement['Diluted EPS']
     book_value = balance_sheet['Stockholders Equity']
@@ -137,17 +140,19 @@ def calculate_graham_number(income_statement: dict, balance_sheet: dict) -> dict
     return graham_numbers
 
 @tool
-def calculate_roe(balance_sheet: dict, income_statement: dict) -> dict:
+def calculate_roe(ticker: str) -> dict:
     '''
     Calculates the Return on Equity, given the balance sheet and income statement.
 
     Args:
-        balance_sheet (dict): The balance sheet of the company
-        income_statement (dict): The income statement of the company
+        ticker (str): The ticker symbol of the company
 
     Returns:
         roe (dict): The Return On Equity (ROE) of the company over a few years, with key as date and value as ROE
     '''
+    income_statement = get_income_statement(ticker)
+    balance_sheet = get_balance_sheet(ticker)
+
     net_income = income_statement['Net Income']
     shareholders = balance_sheet['Stockholders Equity']
 
@@ -159,6 +164,32 @@ def calculate_roe(balance_sheet: dict, income_statement: dict) -> dict:
         roe[date] = net_income / shareholders
     
     return roe
+
+@tool
+def calculate_roa(ticker: str) -> dict:
+    '''
+    Calculates the Return on Assets, given the balance sheet and income statement.
+
+    Args:
+        ticker (str): The ticker symbol of the company
+
+    Returns:
+        roa (dict): The Return On Assets (ROA) of the company over a few years, with key as date and value as ROA
+    '''
+    income_statement = get_income_statement(ticker)
+    balance_sheet = get_balance_sheet(ticker)
+
+    net_income = income_statement['Net Income']
+    total_assets = balance_sheet['Total Assets']
+
+    roa = {}
+    for date, net_income, total_assets in zip(net_income.keys(), net_income.values(), total_assets.values()):
+        if np.isnan(net_income) or np.isnan(total_assets):
+            continue
+        roa[date] = {}
+        roa[date] = net_income / total_assets
+    
+    return roa
 
 @tool
 def get_pe_ratio(ticker: str) -> float:
