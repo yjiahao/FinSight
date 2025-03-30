@@ -16,7 +16,7 @@ import numpy as np
 # functions to access financial statements
 # NOTE: need to see if we can work with just giving the entire balance sheet, or extract components of it to reduce token size
 @tool
-def get_balance_sheet(ticker: str) -> pd.DataFrame:
+def get_balance_sheet(ticker: str) -> dict:
     '''
     Get the balance sheet of the company given a ticker symbol.
     
@@ -52,10 +52,13 @@ def get_balance_sheet(ticker: str) -> pd.DataFrame:
     '''
     
     stock = yf.Ticker(ticker)
-    return stock.balance_sheet
+    bs = stock.balance_sheet.transpose()
+    bs.index = bs.index.strftime('%Y-%m-%d')
+
+    return bs.to_dict()
 
 @tool
-def get_income_statement(ticker: str) -> pd.DataFrame:
+def get_income_statement(ticker: str) -> dict:
     '''
     Get the income statement of the company given a ticker symbol.
 
@@ -78,10 +81,13 @@ def get_income_statement(ticker: str) -> pd.DataFrame:
     '''
     
     stock = yf.Ticker(ticker)
-    return stock.income_stmt
+    income_statement = stock.income_stmt.transpose()
+    income_statement.index = income_statement.index.strftime('%Y-%m-%d')
+
+    return income_statement.to_dict()
 
 @tool
-def get_cash_flow(ticker: str) -> pd.DataFrame:
+def get_cash_flow(ticker: str) -> dict:
     '''
     Get the cash flow statement of the company given a ticker symbol.
 
@@ -97,52 +103,95 @@ def get_cash_flow(ticker: str) -> pd.DataFrame:
     Returns:
         dict: The cash flow statement of the company
     '''
-    
     stock = yf.Ticker(ticker)
-    return stock.cash_flow
+    cash_flow = stock.cash_flow.transpose()
+    cash_flow.index = cash_flow.index.strftime('%Y-%m-%d')
+
+    return cash_flow.to_dict()
 
 @tool
-def calculate_graham_number(income_statement: pd.DataFrame, balance_sheet: pd.DataFrame) -> str:
+def calculate_graham_number(income_statement: dict, balance_sheet: dict) -> dict:
     '''
     Calculates the Graham Number
 
     Args:
-        income_statement (pd.DataFrame): The income statement of the company
-        balance_sheet (pd.DataFrame): The balance sheet of the company
+        income_statement (dict): The income statement of the company
+        balance_sheet (dict): The balance sheet of the company
 
     Returns:
-        graham_number (str): The Graham Number of the company over a few years
+        graham_number (dict): The Graham Number of the company over a few years, with date as key and Graham Number as value
     '''
 
-    # get the data from the balance sheet and income statement
-    diluted_eps = income_statement.loc['Diluted EPS']
-    book_value = balance_sheet.loc['Stockholders Equity']
-    shares_outstanding = balance_sheet.loc['Shares Outstanding']
+    diluted_eps = income_statement['Diluted EPS']
+    book_value = balance_sheet['Stockholders Equity']
+    shares_outstanding = balance_sheet['Ordinary Shares Number']
 
-    # calculate book value per share
-    book_value_ps = book_value / shares_outstanding
+    # convert into format we can use
+    graham_numbers = {}
 
-    graham_number = (22.5 * diluted_eps * book_value_ps) ** 0.5
-    graham_number = graham_number.dropna()
+    for date, eps, book_value, shares_outstanding in zip(diluted_eps.keys(), diluted_eps.values(), book_value.values(), shares_outstanding.values()):
+        if np.isnan(eps) or np.isnan(book_value) or np.isnan(shares_outstanding):
+            continue
+        graham_numbers[date] = {}
+        book_value_ps = book_value / shares_outstanding
+        graham_numbers[date] = (22.5 * eps * book_value_ps) ** 0.5
 
-    return graham_number.to_string()
+    return graham_numbers
 
 @tool
-def calculate_roe(balance_sheet: pd.DataFrame, income_statement: pd.DataFrame) -> str:
+def calculate_roe(balance_sheet: dict, income_statement: dict) -> dict:
     '''
     Calculates the Return on Equity, given the balance sheet and income statement.
 
     Args:
-        balance_sheet (pd.DataFrame): The balance sheet of the company
-        income_statement (pd.DataFrame): The income statement of the company
+        balance_sheet (dict): The balance sheet of the company
+        income_statement (dict): The income statement of the company
 
     Returns:
-        roe (str): The Return On Equity (ROE) of the company over a few years
+        roe (dict): The Return On Equity (ROE) of the company over a few years, with key as date and value as ROE
     '''
-    # get the data from the balance sheet and income statement
-    net_income = income_statement.loc['Net Income']
-    shareholders_equity = balance_sheet.loc['Stockholders Equity']
+    net_income = income_statement['Net Income']
+    shareholders = balance_sheet['Stockholders Equity']
 
-    roe = (net_income / shareholders_equity).dropna()
+    roe = {}
+    for date, net_income, shareholders in zip(net_income.keys(), net_income.values(), shareholders.values()):
+        if np.isnan(net_income) or np.isnan(shareholders):
+            continue
+        roe[date] = {}
+        roe[date] = net_income / shareholders
+    
+    return roe
 
-    return roe.to_string()
+@tool
+def get_pe_ratio(ticker: str) -> float:
+    '''
+    Calculates the Price to Earnings (P/E) ratio, given the income statement.
+    Market value per share / EPS
+
+    Args:
+        income_statement (dict): The income statement of the company
+
+    Returns:
+        pe_ratio (dict): The P/E ratio of the company over a few years, with key as date and value as P/E ratio
+    '''
+    data = yf.Ticker(ticker)
+    pe_ratio = data.info['trailingPE']
+
+    return pe_ratio
+
+@tool
+def get_earnings_yield(ticker: str) -> float:
+    '''
+    Calculates the Earnings Yield, given the income statement.
+    Earnings Yield = EPS / Market Value per Share
+
+    Args:
+        income_statement (dict): The income statement of the company
+
+    Returns:
+        earnings_yield (dict): The Earnings Yield of the company over a few years, with key as date and value as Earnings Yield
+    '''
+    data = yf.Ticker(ticker)
+    pe_ratio = data.info['trailingPE']
+
+    return 1 / pe_ratio
