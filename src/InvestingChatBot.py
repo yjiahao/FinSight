@@ -5,9 +5,10 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.tools import tool
 
 import yfinance as yf
+
+from agent_tools import *
 
 from dotenv import load_dotenv
 
@@ -19,54 +20,6 @@ REDIS_URL = "redis://localhost:6379/0"
 
 # NOTE: currently, whenever we restart the redis server, the whole chat history disappears. Can we make the chat history persistent such that if we run again the chat history remains?
 # NOTE: can we include RAG or some form of retrieval with agents in the later stage as well?
-
-
-
-# TODO: add more tools for the LLM using the yfinance API: look at balance sheet, income statement, cash flow, etc.
-# tools for the LLM agent to use
-@tool
-def calculate_graham_number(earnings_per_share: float, book_value_per_share: float):
-    '''
-    Calculates the Graham Number
-
-    Args:
-        earnings_per_share (float): The earnings per share of the stock
-        book_value_per_share (float): The book value per share of the stock
-
-    Returns:
-        float: The Graham Number
-    '''
-    return (22.5 * earnings_per_share * book_value_per_share) ** 0.5
-
-@tool
-def calculate_roe(net_income: float, shareholders_equity: float):
-    '''
-    Calculates the Return on Equity
-
-    Args:
-        net_income (float): The net income of the company
-        shareholders_equity (float): The shareholders equity of the company
-
-    Returns:
-        float: The Return on Equity
-    '''
-    return net_income / shareholders_equity
-
-# NOTE: need to see if we can work with just giving the entire balance sheet, or extract components of it to reduce token size
-@tool
-def get_balance_sheet(ticker: str):
-    '''
-    Get the balance sheet of the company given a ticker symbol.
-
-    Args:
-        ticker (str): The ticker symbol of the company
-
-    Returns:
-        dict: The balance sheet of the company
-    '''
-    
-    stock = yf.Ticker(ticker)
-    return stock.balance_sheet.to_string()
 
 class InvestingChatBot:
 
@@ -81,13 +34,13 @@ class InvestingChatBot:
                     - **Management quality**: Considering leadership integrity and track record.  
                     - **Long-term perspective**: Prioritizing stable, high-quality businesses over speculative investments.  
 
-                    ### **How to Answer User Questions**
+                    **How to Answer User Questions**
                     - If a user asks about a specific stock, provide a well-reasoned evaluation based on Buffet's principles.  
                     - If necessary, use the **available tools** to gather relevant data before forming a response.  
                     - **Before using a tool**, think carefully about whether the tool could be useful for answering the question. If a tool is not needed, rely on your own knowledge.  
                     - If you do not have enough information to provide an answer, simply respond with: **"I don't know."**  
 
-                    ### **Context Awareness**
+                    **Context Awareness**
                     - The user's question may reference prior discussions, so take chat history into account when forming responses.  
                     - Maintain a professional yet approachable tone, ensuring clarity for investors at any experience level.  
 
@@ -101,7 +54,9 @@ class InvestingChatBot:
     tools = [
         calculate_graham_number,
         calculate_roe,
-        get_balance_sheet
+        get_balance_sheet,
+        get_income_statement,
+        get_cash_flow,
     ]
 
     def __init__(self, model: str, temperature: float, session_id: str):
