@@ -9,8 +9,6 @@ import numpy as np
 # TODO: what happens if we need data from different dataframes? E.g. balance sheet, income statement for calculating ROE
 # at the moment, just letting agent decide how to use the tools and letting it chain them together
 
-# TODO: change the tool inputs to be taking in serializable objects instead of pandas dataframes
-
 # tools for the LLM agent to use
 
 # functions to access financial statements
