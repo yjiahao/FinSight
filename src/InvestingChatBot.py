@@ -22,6 +22,7 @@ REDIS_URL = "redis://localhost:6379/0"
 
 # NOTE: currently, whenever we restart the redis server, the whole chat history disappears. Can we make the chat history persistent such that if we run again the chat history remains?
 # NOTE: can we include RAG or some form of retrieval with agents in the later stage as well?
+# TODO: can we split the tools up among different LLMs?
 
 class InvestingChatBot:
 
