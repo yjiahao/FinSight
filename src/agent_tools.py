@@ -224,3 +224,141 @@ def get_earnings_yield(ticker: str) -> float:
     pe_ratio = data.info['trailingPE']
 
     return 1 / pe_ratio
+
+@tool
+def get_debt_to_equity_ratio(ticker: str) -> dict:
+    '''
+    Calculates the Debt to Equity ratio, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        debt_to_equity_ratio (dict): The Debt to Equity ratio of the company over a few years
+    '''
+    balance_sheet = get_balance_sheet(ticker)
+    equity = balance_sheet['Common Stock Equity']
+    total_debt = balance_sheet['Total Debt']
+
+    debt_to_equity_ratio = {}
+    for date, equity, total_debt in zip(equity.keys(), equity.values(), total_debt.values()):
+        if np.isnan(equity) or np.isnan(total_debt):
+            continue
+        debt_to_equity_ratio[date] = total_debt / equity
+
+    return debt_to_equity_ratio
+
+@tool
+def get_gross_profit_margin(ticker: str) -> dict:
+    '''
+    Calculates the Gross Profit Margin, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        gross_profit_margin (float): The Gross Profit Margin of the company over a few years.
+    '''
+    income_statement = get_income_statement(ticker)
+    total_revenue = income_statement['Total Revenue']
+    gross_profit = income_statement['Gross Profit']
+
+    gross_profit_margin = {}
+    for date, total_revenue, gross_profit in zip(total_revenue.keys(), total_revenue.values(), gross_profit.values()):
+        if np.isnan(total_revenue) or np.isnan(gross_profit):
+            continue
+        gross_profit_margin[date] = gross_profit / total_revenue
+
+    return gross_profit_margin
+
+@tool
+def get_operating_margin(ticker: str) -> dict:
+    '''
+    Calculates the Operating Margin, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+        
+    Returns:
+        operating_margin (float): The Operating Margin of the company over a few years.
+    '''
+    income_statement = get_income_statement(ticker)
+    ebit = income_statement['EBIT']
+    total_revenue = income_statement['Total Revenue']
+
+    operating_margin = {}
+    for date, ebit, total_revenue in zip(ebit.keys(), ebit.values(), total_revenue.values()):
+        if np.isnan(ebit) or np.isnan(total_revenue):
+            continue
+        operating_margin[date] = ebit / total_revenue
+
+    return operating_margin
+
+@tool
+def get_net_profit_margin(ticker: str) -> dict:
+    '''
+    Calculates the net profit margin, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        net_profit_margin (float): The net profit margin of the company
+    '''
+    income_statement = get_income_statement(ticker)
+    net_income = income_statement['Net Income']
+    total_revenue = income_statement['Total Revenue']
+
+    net_profit_margin = {}
+    for date, net_income, total_revenue in zip(net_income.keys(), net_income.values(), total_revenue.values()):
+        if np.isnan(net_income) or np.isnan(total_revenue):
+            continue
+        net_profit_margin[date] = net_income / total_revenue
+
+    return net_profit_margin
+
+@tool
+def get_current_ratio(ticker: str) -> dict:
+    '''
+    Calculates the current ratio, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        current_ratio (float): The current ratio of the company over a few years.
+    '''
+    balance_sheet = get_balance_sheet(ticker)
+    current_assets = balance_sheet['Current Assets']
+    current_liabilities = balance_sheet['Current Debt']
+
+    current_ratio = {}
+    for date, current_assets, current_liabilities in zip(current_assets.keys(), current_assets.values(), current_liabilities.values()):
+        if np.isnan(current_assets) or np.isnan(current_liabilities):
+            continue
+        current_ratio[date] = current_assets / current_liabilities
+
+    return current_ratio
+
+@tool
+def get_working_capital(ticker: str) -> dict:
+    '''
+    Calculates the working capital, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        working_capital (float): The working capital of the company over a few years.
+    '''
+    balance_sheet = get_balance_sheet(ticker)
+    current_assets = balance_sheet['Current Assets']
+    current_liabilities = balance_sheet['Current Debt']
+
+    working_capital = {}
+    for date, current_assets, current_liabilities in zip(current_assets.keys(), current_assets.values(), current_liabilities.values()):
+        if np.isnan(current_assets) or np.isnan(current_liabilities):
+            continue
+        working_capital[date] = current_assets - current_liabilities
+
+    return working_capital
