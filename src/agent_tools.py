@@ -142,7 +142,7 @@ def calculate_graham_number(ticker: str) -> dict:
 @tool
 def calculate_roe(ticker: str) -> dict:
     '''
-    Calculates the Return on Equity, given the balance sheet and income statement.
+    Calculates the latest Return on Equity, given the balance sheet and income statement.
 
     Args:
         ticker (str): The ticker symbol of the company
@@ -362,3 +362,19 @@ def get_working_capital(ticker: str) -> dict:
         working_capital[date] = current_assets - current_liabilities
 
     return working_capital
+
+@tool
+def get_current_price(ticker: str):
+    '''
+    Get the current price of the stock.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        current_price (float): The current price of the stock
+    '''
+    data = yf.Ticker(ticker)
+    current_price = data.history(period='1d')['Close'][0]
+
+    return current_price
