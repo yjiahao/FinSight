@@ -5,6 +5,8 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_tavily import TavilySearch
+from langchain_core.output_parsers import JsonOutputParser
 
 import yfinance as yf
 
@@ -50,8 +52,8 @@ class InvestingChatBot:
     If you do not have the answer to the user's question, respond with: **"I don't know."**
     """
     
-    # tools for all the agents to use
-    tools = [
+    # tools for all the investing agent to use
+    investing_tools = [
         calculate_graham_number,
         calculate_roe,
         get_pe_ratio,
@@ -66,6 +68,7 @@ class InvestingChatBot:
         get_current_price
     ]
 
+    # prompt template for intent LLM
     intent_llm_prompt = '''
 
     You are an intelligent assistant that analyzes user questions to determine their intent. 
@@ -77,6 +80,39 @@ class InvestingChatBot:
     - Focus on what the user is trying to achieve or find out
     - Avoid repeating the original question or message
     - Use clear and simple language
+    - Classify the topic of the user's query to determine which agent should handle it.
+    - You can choose only one of the following values for "topic":
+        - "search": if the question is best handled by the Search Agent (e.g., company news, or how-to queries).
+        - "investing": if the question is about investment strategies, financial analysis, stock picking, or personal investing.
+        - "neither": if the question is unrelated to search or investing.
+
+    Respond in the following JSON format:
+
+    {{
+        "intent": "<description of the user's intent>",
+        "topic": "<topic to classify the user's query>"
+    }}
+    '''
+
+    # search agent tools
+    search_tools = [
+        TavilySearch(
+            api_key="TAVILY_API_KEY",
+            search_type="news",
+            language="en",
+            max_results=5,
+            sort_by="relevancy",
+        )
+    ]
+
+    search_agent_prompt = '''
+    You are a stock and financial analyst, who helps with financial news searches, and helps to analyze the sentiment of the news you find.
+    You can search for news articles, and then analyze the sentiment of the articles you find using the tools given to you.
+    You can also use the search results to help answer questions about the news articles you find.
+
+    You may use news sources like Yahoo Finance, Google Finance, MarketWatch, Wall Street Journal, and others.
+
+    Provide your analysis in a clear and concise manner, and make sure to include the most relevant information from the articles you find, and always link to the sources you use.
     '''
 
     def __init__(self, model: str, temperature: float, session_id: str):
@@ -88,7 +124,7 @@ class InvestingChatBot:
         self.session_id = session_id
         
         self.intent_parser = self._create_intent_llm()
-
+        self.search_agent = self._create_search_agent()
         self.agent = self._create_agent_with_history()
         
 
@@ -139,8 +175,8 @@ class InvestingChatBot:
             ]
         )
         
-        agent = create_tool_calling_agent(chat, self.tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True)
+        agent = create_tool_calling_agent(chat, self.investing_tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=self.investing_tools, verbose=True)
 
         agent_with_chat_history = RunnableWithMessageHistory(
             agent_executor,
@@ -171,20 +207,62 @@ class InvestingChatBot:
             ]
         )
 
-        chain = prompt | llm
+        parser = JsonOutputParser()
+
+        chain = prompt | llm | parser
 
         return chain
+    
+    def _create_search_agent(self) -> AgentExecutor:
+        chat = ChatGroq(
+            temperature=self.temperature,
+            model=self.model
+        )
+
+        # define the prompt
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.search_agent_prompt),
+                # First put the history
+                ("placeholder", "{chat_history}"),
+                # intent of user
+                ("ai", "{intent}"),
+                # Then the new input
+                ("human", "{input}"),
+                # Finally the scratchpad
+                ("placeholder", "{agent_scratchpad}"),
+            ]
+        )
+        
+        agent = create_tool_calling_agent(chat, self.search_tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=self.search_tools, verbose=True)
+
+        agent_with_chat_history = RunnableWithMessageHistory(
+            agent_executor,
+            self.get_message_history,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+        )
+
+        return agent_with_chat_history
     
     def prompt(self, input: str) -> str:
         '''
         Prompt the agent, get a response in string
         '''
-        # TODO: maybe just use LCEL to do this
-        intent = self.intent_parser.invoke({"input": input}).content
+        intent = self.intent_parser.invoke({"input": input})
 
-        response = self.agent.invoke(
-            {"input": input, 'intent': intent},
-            config={"configurable": {"session_id": self.session_id}},
-        )
+        if intent['topic'] == 'search':
+            response = self.search_agent.invoke(
+                {"input": input, 'intent': intent},
+                config={"configurable": {"session_id": self.session_id}},
+            )
+        elif intent['topic'] == 'neither':
+            response = {"Output": "I don't know."}
+        else:
+            response = self.agent.invoke(
+                {"input": input, 'intent': intent},
+                config={"configurable": {"session_id": self.session_id}},
+            )
 
         return response['output']
