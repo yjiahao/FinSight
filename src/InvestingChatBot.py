@@ -10,6 +10,9 @@ from langchain_core.output_parsers import JsonOutputParser
 
 from langchain_core.messages import HumanMessage, AIMessage
 
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_redis import RedisConfig, RedisVectorStore
+
 import redis
 
 import yfinance as yf
@@ -26,7 +29,6 @@ REDIS_URL = "redis://localhost:6379/0"
 
 # NOTE: currently, whenever we restart the redis server, the whole chat history disappears. Can we make the chat history persistent such that if we run again the chat history remains?
 # NOTE: can we include RAG or some form of retrieval with agents in the later stage as well?
-# TODO: can we split the tools up among different LLMs?
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -123,21 +125,36 @@ class InvestingChatBot:
         self.temperature = temperature
         self.session_id = session_id
 
-        self.chat_history = self.get_message_history()
+        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+
+        self.chat_history = self._get_message_history()
         
         self.intent_parser = self._create_intent_llm()
         self.search_agent = self._create_search_agent()
         self.agent = self._create_investing_agent()
         
 
-    def get_message_history(self) -> RedisChatMessageHistory:
+    def _get_message_history(self):
         '''
         Get the message history of the current session.
 
         Returns:
             RedisChatMessageHistory: The message history of the current session.
         '''
-        history = RedisChatMessageHistory(self.session_id, url=REDIS_URL)
+        # history = RedisChatMessageHistory(self.session_id, url=REDIS_URL)
+
+        config = RedisConfig(
+            index_name=self.session_id,
+            redis_url=REDIS_URL,
+            metadata_schema=[
+                {
+                    "name": "sender",
+                    "type": "tag"
+                }
+            ]
+        )
+
+        history = RedisVectorStore(self.embeddings, config=config)
 
         return history
     
@@ -256,10 +273,16 @@ class InvestingChatBot:
         '''
         intent = self.intent_parser.invoke({"input": input})
 
-        if num_messages == -1:
-            history = self.chat_history.messages
-        else:
-            history = self.chat_history.messages[-num_messages:]
+        # if num_messages == -1:
+        #     history = self.chat_history.messages
+        # else:
+        #     history = self.chat_history.messages[-num_messages:]
+        history_retriever = self.chat_history.as_retriever(search_type="similarity", search_kwargs={"k": num_messages}) # return 5 by default
+        history = history_retriever.invoke(input)
+        # to distinguish between human and AI messages, we added the metadata field 'sender'
+        history = [
+            HumanMessage(content=doc.page_content) if doc.metadata['sender'] == 'human' else AIMessage(content=doc.page_content) for doc in history
+        ]
 
         if intent['topic'] == 'search':
             response = self.search_agent.invoke(
@@ -276,7 +299,8 @@ class InvestingChatBot:
         ai_response_string = response['output']
 
         # add the user message and AI message to the chat history
-        self.chat_history.add_user_message(HumanMessage(content=input))
-        self.chat_history.add_ai_message(AIMessage(content=ai_response_string))
+        # self.chat_history.add_user_message(HumanMessage(content=input))
+        # self.chat_history.add_ai_message(AIMessage(content=ai_response_string))
+        self.chat_history.add_texts([input, ai_response_string], [{'sender': 'human'}, {'sender': 'ai'}])
 
         return ai_response_string
