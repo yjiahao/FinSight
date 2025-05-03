@@ -8,6 +8,10 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_tavily import TavilySearch
 from langchain_core.output_parsers import JsonOutputParser
 
+from langchain_core.messages import HumanMessage, AIMessage
+
+import redis
+
 import yfinance as yf
 
 from agent_tools import *
@@ -24,12 +28,15 @@ REDIS_URL = "redis://localhost:6379/0"
 # NOTE: can we include RAG or some form of retrieval with agents in the later stage as well?
 # TODO: can we split the tools up among different LLMs?
 
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
 class InvestingChatBot:
 
     # define default system prompt
     investing_chatbot_prompt = """
-    You are an investing professional with expertise in Warren Buffett's value investing philosophy, helping users evaluate whether a stock is a good long-term investment.
-    Your analysis should be balanced and comprehensive, grounded in Buffett's core principles, but not limited to any single metric. The Graham number may be used as a reference point, but should not dominate the evaluation.
+    You are a financial analysis assistant, helping users evaluate whether a stock is a good long-term investment.
+    When asked to evaluate a company stock, you must assess it based on multiple fundamental metrics and qualitative factors.
+    Your analysis should be balanced and comprehensive, but not limited to any single metric.
 
     Your investment analysis should consider the following:
         - Intrinsic value: Estimate whether a stock is undervalued based on discounted cash flows, earnings power, or other reasonable valuation techniques.
@@ -38,33 +45,25 @@ class InvestingChatBot:
         - Management quality: Consider leadership's capital allocation track record, integrity, and long-term thinking.
         - Long-term potential: Favor consistent, predictable businesses over speculative or cyclical ones.
 
-    How to respond:
-        - Use any relevant valuation or analysis method that fits the business and its context — do not default to the Graham number unless it's appropriate.
-        - Pull relevant data using the available tools as needed (e.g., financials, ratios, historical performance).
-        - Present findings clearly, and follow with a reasoned investment opinion based on Buffett-style principles.
-        - Avoid a one-size-fits-all approach. Each company is unique and should be evaluated based on the nature of its business, financials, and long-term prospects.
+    In your answer, follow this structure:
+        1. Valuation & Intrinsic Value
+        2. Profitability
+        3. Financial Health
+        4. Moat & Business Quality
+        5. Management
+        6. Conclusion (your reasoned opinion, summarizing strengths, risks, and whether it is a sound long-term investment when considering the above factors)
+    - Do the analysis over time, not just for the latest quarter or year.
 
     Other instructions:
-        - Use the tools directly to gather data as needed. Do not output tool calls — retrieve the data and continue with the analysis. Do not output tool call syntax like <tool_call> unless explicitly asked to.
-        - Only output numbers if they are taken from the tools. Do not use any numbers that are not from the tools in your analysis.
-        - You should use the tools whenever you think it may be relevant to the analysis.
+        - Show all data over time returned from the tools in your response, if you used them.
+        - If you cite any data in the form of numbers, make sure it is from the tools you used.
+        - Only use the tools if you need to.
     """
 
     
     # tools for all the investing agent to use
     investing_tools = [
-        # calculate_graham_number,
-        calculate_roe,
-        get_pe_ratio,
-        get_earnings_yield,
-        calculate_roa,
-        get_debt_to_equity_ratio,
-        get_gross_profit_margin,
-        get_operating_margin,
-        get_net_profit_margin,
-        get_current_ratio,
-        get_working_capital,
-        get_current_price
+        get_financial_information
     ]
 
     # prompt template for intent LLM
@@ -113,7 +112,7 @@ class InvestingChatBot:
 
     You may use news sources like Yahoo Finance, Google Finance, MarketWatch, Wall Street Journal, and others.
 
-    Provide your analysis in a clear and concise manner, and make sure to include the most relevant information from the articles you find, and always link to the sources you use.
+    Provide your analysis in a clear and concise manner, and make sure to include the most relevant information from the articles you find. Always link to the sources you use.
     '''
 
     def __init__(self, model: str, temperature: float, session_id: str):
@@ -123,10 +122,12 @@ class InvestingChatBot:
         self.model = model
         self.temperature = temperature
         self.session_id = session_id
+
+        self.chat_history = self.get_message_history()
         
         self.intent_parser = self._create_intent_llm()
         self.search_agent = self._create_search_agent()
-        self.agent = self._create_agent_with_history()
+        self.agent = self._create_investing_agent()
         
 
     def get_message_history(self) -> RedisChatMessageHistory:
@@ -136,7 +137,9 @@ class InvestingChatBot:
         Returns:
             RedisChatMessageHistory: The message history of the current session.
         '''
-        return RedisChatMessageHistory(self.session_id, url=REDIS_URL)
+        history = RedisChatMessageHistory(self.session_id, url=REDIS_URL)
+
+        return history
     
     def clear_history(self):
         '''
@@ -148,7 +151,7 @@ class InvestingChatBot:
         history = self.get_message_history()
         history.clear()
     
-    def _create_agent_with_history(self) -> RunnableWithMessageHistory:
+    def _create_investing_agent(self) -> RunnableWithMessageHistory:
         '''
         Create an agent with message history. Message history saved to redis database for persistence.
 
@@ -179,14 +182,14 @@ class InvestingChatBot:
         agent = create_tool_calling_agent(chat, self.investing_tools, prompt)
         agent_executor = AgentExecutor(agent=agent, tools=self.investing_tools, verbose=True)
 
-        agent_with_chat_history = RunnableWithMessageHistory(
-            agent_executor,
-            self.get_message_history,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-        )
+        # agent_with_chat_history = RunnableWithMessageHistory(
+        #     agent_executor,
+        #     self.get_message_history,
+        #     input_messages_key="input",
+        #     history_messages_key="chat_history",
+        # )
 
-        return agent_with_chat_history
+        return agent_executor
     
     def _create_intent_llm(self):
         '''
@@ -238,30 +241,42 @@ class InvestingChatBot:
         agent = create_tool_calling_agent(chat, self.search_tools, prompt)
         agent_executor = AgentExecutor(agent=agent, tools=self.search_tools, verbose=True)
 
-        agent_with_chat_history = RunnableWithMessageHistory(
-            agent_executor,
-            self.get_message_history,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-        )
+        # agent_with_chat_history = RunnableWithMessageHistory(
+        #     agent_executor,
+        #     self.get_message_history,
+        #     input_messages_key="input",
+        #     history_messages_key="chat_history",
+        # )
 
-        return agent_with_chat_history
+        return agent_executor
     
-    def prompt(self, input: str) -> str:
+    def prompt(self, input: str, num_messages: int=5) -> str:
         '''
         Prompt the agent, get a response in string
         '''
         intent = self.intent_parser.invoke({"input": input})
 
+        if num_messages == -1:
+            history = self.chat_history.messages
+        else:
+            history = self.chat_history.messages[-num_messages:]
+
         if intent['topic'] == 'search':
             response = self.search_agent.invoke(
-                {"input": input, 'intent': intent},
+                {"input": input, 'intent': intent, "chat_history": history},
                 config={"configurable": {"session_id": self.session_id}},
             )
         else:
             response = self.agent.invoke(
-                {"input": input, 'intent': intent},
+                {"input": input, 'intent': intent, 'chat_history': history},
                 config={"configurable": {"session_id": self.session_id}},
             )
 
-        return response['output']
+        # get AI response in string format
+        ai_response_string = response['output']
+
+        # add the user message and AI message to the chat history
+        self.chat_history.add_user_message(HumanMessage(content=input))
+        self.chat_history.add_ai_message(AIMessage(content=ai_response_string))
+
+        return ai_response_string
