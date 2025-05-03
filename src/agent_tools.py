@@ -106,7 +106,6 @@ def get_cash_flow(ticker: str) -> dict:
 
     return cash_flow.to_dict()
 
-@tool
 def calculate_graham_number(ticker: str) -> dict:
     '''
     Calculates the Graham Number. It is a measure of a stock's intrinsic value, based on the company's earnings per share (EPS) and book value per share (BVPS).
@@ -133,13 +132,11 @@ def calculate_graham_number(ticker: str) -> dict:
     for date, eps, book_value, shares_outstanding in zip(diluted_eps.keys(), diluted_eps.values(), book_value.values(), shares_outstanding.values()):
         if np.isnan(eps) or np.isnan(book_value) or np.isnan(shares_outstanding):
             continue
-        graham_numbers[date] = {}
         book_value_ps = book_value / shares_outstanding
-        graham_numbers[date] = (22.5 * eps * book_value_ps) ** 0.5
+        graham_numbers[date] = round((22.5 * eps * book_value_ps) ** 0.5, 2)
 
     return graham_numbers
 
-@tool
 def calculate_roe(ticker: str) -> dict:
     '''
     Calculates the latest Return on Equity, given the balance sheet and income statement.
@@ -160,12 +157,10 @@ def calculate_roe(ticker: str) -> dict:
     for date, net_income, shareholders in zip(net_income.keys(), net_income.values(), shareholders.values()):
         if np.isnan(net_income) or np.isnan(shareholders):
             continue
-        roe[date] = {}
-        roe[date] = net_income / shareholders
+        roe[date] = round(net_income / shareholders, 2)
     
     return roe
 
-@tool
 def calculate_roa(ticker: str) -> dict:
     '''
     Calculates the Return on Assets, given the balance sheet and income statement.
@@ -186,29 +181,40 @@ def calculate_roa(ticker: str) -> dict:
     for date, net_income, total_assets in zip(net_income.keys(), net_income.values(), total_assets.values()):
         if np.isnan(net_income) or np.isnan(total_assets):
             continue
-        roa[date] = {}
-        roa[date] = net_income / total_assets
+        roa[date] = round(net_income / total_assets, 2)
     
     return roa
 
-@tool
-def get_pe_ratio(ticker: str) -> float:
+def get_pe_ratio(ticker: str) -> dict:
     '''
-    Calculates the Price to Earnings (P/E) ratio, given the income statement.
-    Market value per share / EPS
+    Get the P/E ratio of the company given a ticker symbol.
 
     Args:
-        income_statement (dict): The income statement of the company
+        ticker (str): The ticker symbol of the company
 
     Returns:
-        pe_ratio (dict): The P/E ratio of the company over a few years, with key as date and value as P/E ratio
+        list: A list P/E ratios for each year
     '''
-    data = yf.Ticker(ticker)
-    pe_ratio = data.info['trailingPE']
+    
+    income_statement = get_income_statement(ticker)
+    eps = income_statement['Diluted EPS']
 
-    return pe_ratio
+    stock = yf.Ticker(ticker)
+    prices = stock.history(period='max')
+    prices['year'] = prices.index.year
+    year_last_prices = prices.groupby('year').last()['Close']
 
-@tool
+    pe_ratios = {}
+    for date, eps in eps.items():
+        if np.isnan(eps):
+            continue
+        year = pd.to_datetime(date).year
+        if year in year_last_prices.index:
+            pe_ratio = year_last_prices[year] / eps
+            pe_ratios[date] = round(pe_ratio, 2)
+
+    return pe_ratios
+
 def get_earnings_yield(ticker: str) -> float:
     '''
     Calculates the Earnings Yield, given the income statement.
@@ -220,12 +226,10 @@ def get_earnings_yield(ticker: str) -> float:
     Returns:
         earnings_yield (dict): The Earnings Yield of the company over a few years, with key as date and value as Earnings Yield
     '''
-    data = yf.Ticker(ticker)
-    pe_ratio = data.info['trailingPE']
+    pe_ratios = get_pe_ratio(ticker)
+    earnings_yield = {date: round(1 / pe_ratio, 2) for date, pe_ratio in pe_ratios.items()}
+    return earnings_yield
 
-    return 1 / pe_ratio
-
-@tool
 def get_debt_to_equity_ratio(ticker: str) -> dict:
     '''
     Calculates the Debt to Equity ratio, given the stock ticker of the company.
@@ -244,12 +248,11 @@ def get_debt_to_equity_ratio(ticker: str) -> dict:
     for date, equity, total_debt in zip(equity.keys(), equity.values(), total_debt.values()):
         if np.isnan(equity) or np.isnan(total_debt):
             continue
-        debt_to_equity_ratio[date] = total_debt / equity
+        debt_to_equity_ratio[date] = round(total_debt / equity, 2)
 
     return debt_to_equity_ratio
 
-@tool
-def get_gross_profit_margin(ticker: str) -> dict:
+def get_gross_profit_margin(ticker: str) -> list[tuple[str, float]]:
     '''
     Calculates the Gross Profit Margin, given the stock ticker of the company.
 
@@ -257,7 +260,7 @@ def get_gross_profit_margin(ticker: str) -> dict:
         ticker (str): The stock ticker of the company
 
     Returns:
-        gross_profit_margin (float): The Gross Profit Margin of the company over a few years.
+        gross_profit_margin (list): The Gross Profit Margin of the company over a few years.
     '''
     income_statement = get_income_statement(ticker)
     total_revenue = income_statement['Total Revenue']
@@ -267,11 +270,10 @@ def get_gross_profit_margin(ticker: str) -> dict:
     for date, total_revenue, gross_profit in zip(total_revenue.keys(), total_revenue.values(), gross_profit.values()):
         if np.isnan(total_revenue) or np.isnan(gross_profit):
             continue
-        gross_profit_margin[date] = gross_profit / total_revenue
+        gross_profit_margin[date] = round(gross_profit / total_revenue, 2)
 
     return gross_profit_margin
 
-@tool
 def get_operating_margin(ticker: str) -> dict:
     '''
     Calculates the Operating Margin, given the stock ticker of the company.
@@ -290,11 +292,10 @@ def get_operating_margin(ticker: str) -> dict:
     for date, ebit, total_revenue in zip(ebit.keys(), ebit.values(), total_revenue.values()):
         if np.isnan(ebit) or np.isnan(total_revenue):
             continue
-        operating_margin[date] = ebit / total_revenue
+        operating_margin[date] = round(ebit / total_revenue, 2)
 
     return operating_margin
 
-@tool
 def get_net_profit_margin(ticker: str) -> dict:
     '''
     Calculates the net profit margin, given the stock ticker of the company.
@@ -313,11 +314,10 @@ def get_net_profit_margin(ticker: str) -> dict:
     for date, net_income, total_revenue in zip(net_income.keys(), net_income.values(), total_revenue.values()):
         if np.isnan(net_income) or np.isnan(total_revenue):
             continue
-        net_profit_margin[date] = net_income / total_revenue
+        net_profit_margin[date] = round(net_income / total_revenue, 2)
 
     return net_profit_margin
 
-@tool
 def get_current_ratio(ticker: str) -> dict:
     '''
     Calculates the current ratio, given the stock ticker of the company.
@@ -336,11 +336,10 @@ def get_current_ratio(ticker: str) -> dict:
     for date, current_assets, current_liabilities in zip(current_assets.keys(), current_assets.values(), current_liabilities.values()):
         if np.isnan(current_assets) or np.isnan(current_liabilities):
             continue
-        current_ratio[date] = current_assets / current_liabilities
+        current_ratio[date] = round(current_assets / current_liabilities, 2)
 
     return current_ratio
 
-@tool
 def get_working_capital(ticker: str) -> dict:
     '''
     Calculates the working capital, given the stock ticker of the company.
@@ -359,11 +358,10 @@ def get_working_capital(ticker: str) -> dict:
     for date, current_assets, current_liabilities in zip(current_assets.keys(), current_assets.values(), current_liabilities.values()):
         if np.isnan(current_assets) or np.isnan(current_liabilities):
             continue
-        working_capital[date] = current_assets - current_liabilities
+        working_capital[date] = round(current_assets - current_liabilities, 2)
 
     return working_capital
 
-@tool
 def get_current_price(ticker: str):
     '''
     Get the current price of the stock.
@@ -377,4 +375,46 @@ def get_current_price(ticker: str):
     data = yf.Ticker(ticker)
     current_price = data.history(period='1d')['Close'][0]
 
-    return current_price
+    return round(current_price, 2)
+
+@tool
+def get_financial_information(ticker: str) -> dict:
+    '''
+    Get the financial information of the company given a ticker symbol.
+    Financial information includes:
+        - Graham Number
+        - Return on Equity (ROE)
+        - Return on Assets (ROA)
+        - P/E Ratio
+        - Earnings Yield
+        - Debt to Equity Ratio
+        - Gross Profit Margin
+        - Operating Margin
+        - Net Profit Margin
+        - Current Ratio
+        - Working Capital
+        - Current Price
+
+    Args:
+        ticker (str): The ticker symbol of the company
+
+    Returns:
+        dict: The financial information of the company with keys as the financial metric, and values as a dictionary of key as date adn value as the financial metric
+    '''
+    
+    res = {}
+    # calculate the date here
+    res['graham_number'] = calculate_graham_number(ticker)
+    res['roe'] = calculate_roe(ticker)
+    res['roa'] = calculate_roa(ticker)
+    res['pe_ratio'] = get_pe_ratio(ticker)
+    res['earnings_yield'] = get_earnings_yield(ticker)
+    res['debt_to_equity_ratio'] = get_debt_to_equity_ratio(ticker)
+    res['gross_profit_margin'] = get_gross_profit_margin(ticker)
+    res['operating_margin'] = get_operating_margin(ticker)
+    res['net_profit_margin'] = get_net_profit_margin(ticker)
+    res['current_ratio'] = get_current_ratio(ticker)
+    res['working_capital'] = get_working_capital(ticker)
+    res['current_price'] = get_current_price(ticker)
+
+    return res
