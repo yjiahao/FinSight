@@ -13,6 +13,8 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_redis import RedisConfig, RedisVectorStore
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 import redis
 
 import yfinance as yf
@@ -35,7 +37,7 @@ redis_client = redis.Redis(host='localhost', port=6379, db=0)
 class InvestingChatBot:
 
     # define default system prompt
-    investing_chatbot_prompt = """
+    stock_analysis_chatbot_prompt = """
     You are a financial analysis assistant, helping users evaluate whether a stock is a good long-term investment.
     When asked to evaluate a company stock, you must assess it based on multiple fundamental metrics and qualitative factors.
     Your analysis should be balanced and comprehensive, but not limited to any single metric.
@@ -83,7 +85,8 @@ class InvestingChatBot:
     - Classify the topic of the user's query to determine which agent should handle it.
     - You can choose only one of the following values for "topic":
         - "search": if the question is best handled by the Search Agent (e.g., company news, or how-to queries).
-        - "investing": if the question is about investment strategies, financial analysis, stock picking, or personal investing.
+        - "stock_analysis": if the question is about performing financial analysis on an individual stock.
+        - "learn_investing": if the question is about learning investing concepts, strategies, or terminology.
         - "neither": if the question is unrelated to search or investing.
 
     Respond in the following JSON format:
@@ -117,12 +120,34 @@ class InvestingChatBot:
     Provide your analysis in a clear and concise manner, and make sure to include the most relevant information from the articles you find. Always link to the sources you use.
     '''
 
-    def __init__(self, model: str, temperature: float, session_id: str):
+    # investing tutor prompt
+    investing_chatbot_prompt = '''
+    You are a investing professional, who helps users learn investing concepts and strategies.
+    You explain to users the concepts and strategies in a clear and concise manner.
+
+    An outline of your response should be (but you do not have to include some of the sections if they are not applicable):
+    1. Introduction: Briefly introduce the concept or strategy you are explaining.
+    2. Explanation: Provide a detailed explanation of the concept or strategy, including any relevant terminology or jargon.
+    3. Use cases: Explain how the concept or strategy can be applied in real-world situations, and what types of investors or traders might benefit from it.
+    4. Pros and Cons: Discuss the potential benefits of using the concept or strategy, and any risks or drawbacks to be aware of.
+    5. Examples: Provide examples to illustrate the concept or strategy, and how it can be applied in real-world situations.
+    6. Conclusion: Summarize the key points and provide any recommendations (in the form of other concepts) for further learning.
+
+    Your response should be detailed and informative, but also easy to understand for someone who may not have a background in finance or investing, but also not too simple.
+    '''
+
+    # generic chatbot prompt
+    generic_chatbot_prompt = '''
+    You are a helpful chatbot that helps users with their questions and queries.
+    You can answer questions about a wide range of topics from the user.
+    '''
+
+    def __init__(self, session_id: str):
 
         '''Initialize the model, temperature, and the session id'''
 
-        self.model = model
-        self.temperature = temperature
+        # self.model = model
+        # self.temperature = temperature
         self.session_id = session_id
 
         self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
@@ -131,7 +156,9 @@ class InvestingChatBot:
         
         self.intent_parser = self._create_intent_llm()
         self.search_agent = self._create_search_agent()
-        self.agent = self._create_investing_agent()
+        self.analysis_agent = self._create_analysis_agent()
+        self.investing_chatbot = self._create_investing_chatbot()
+        self.generic_chatbot = self._create_general_chatbot()
         
 
     def _get_message_history(self):
@@ -177,14 +204,14 @@ class InvestingChatBot:
         '''
 
         chat = ChatGroq(
-            temperature=self.temperature,
-            model=self.model
+            temperature=0.5,
+            model='deepseek-r1-distill-llama-70b',
         )
 
         # define the prompt
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", self.investing_chatbot_prompt),
+                ("system", self.stock_analysis_chatbot_prompt),
                 # First put the history
                 ("placeholder", "{chat_history}"),
                 # intent of user
@@ -216,9 +243,9 @@ class InvestingChatBot:
             chain: The model used for intent classification
         '''
 
-        llm = ChatGroq(
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
             temperature=0,
-            model='gemma2-9b-it'
         )
 
         prompt = ChatPromptTemplate.from_messages(
@@ -240,8 +267,8 @@ class InvestingChatBot:
         The search agent is used to search for news articles and analyze the sentiment of the articles.
         '''
         chat = ChatGroq(
-            temperature=self.temperature,
-            model=self.model
+            temperature=0.5,
+            model='deepseek-r1-distill-llama-70b',
         )
 
         # define the prompt
@@ -271,6 +298,60 @@ class InvestingChatBot:
 
         return agent_executor
     
+    def _create_investing_chatbot(self):
+        '''
+        Creates the investing tutor agent to help users learn investing concepts.
+        The investing tutor agent is used to help users learn investing concepts and strategies.
+        '''
+        chat = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            temperature=0.5,
+            max_retries=3
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.investing_chatbot_prompt),
+                # First put the history
+                ("placeholder", "{chat_history}"),
+                # intent of user
+                ("ai", "{intent}"),
+                # Then the new input
+                ("human", "{input}")
+            ]
+        )
+
+        chain = prompt | chat
+
+        return chain
+    
+    def _create_general_chatbot(self):
+        '''
+        Creates the generic chatbot agent to help users with their questions and queries.
+        The generic chatbot agent is used to help users with their questions and queries.
+        '''
+        chat = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            temperature=0.5,
+            max_retries=3
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.generic_chatbot_prompt),
+                # First put the history
+                ("placeholder", "{chat_history}"),
+                # intent of user
+                ("ai", "{intent}"),
+                # Then the new input
+                ("human", "{input}")
+            ]
+        )
+
+        chain = prompt | chat
+
+        return chain
+
     def prompt(self, input: str, num_messages: int=5) -> str:
         '''
         Prompt the agent, get a response in string
@@ -288,19 +369,28 @@ class InvestingChatBot:
             HumanMessage(content=doc.page_content) if doc.metadata['sender'] == 'human' else AIMessage(content=doc.page_content) for doc in history
         ]
 
+        chatbot = None
         if intent['topic'] == 'search':
-            response = self.search_agent.invoke(
-                {"input": input, 'intent': intent, "chat_history": history},
-                config={"configurable": {"session_id": self.session_id}},
-            )
+            chatbot = self.search_agent
+        elif intent['topic'] == 'stock_analysis':
+            chatbot = self.analysis_agent
+        elif intent['topic'] == 'learn_investing':
+            chatbot = self.investing_chatbot
         else:
-            response = self.agent.invoke(
-                {"input": input, 'intent': intent, 'chat_history': history},
-                config={"configurable": {"session_id": self.session_id}},
-            )
+            chatbot = self.generic_chatbot
+
+        response = chatbot.invoke(
+            {"input": input, 'intent': intent, "chat_history": history},
+            config={"configurable": {"session_id": self.session_id}},
+        )
 
         # get AI response in string format
-        ai_response_string = response['output']
+        if isinstance(response, dict):
+            # if agent answered the query
+            ai_response_string = response['output']
+        elif isinstance(response, AIMessage):
+            # if it was an AIMessage (chatbot answered the query)
+            ai_response_string = response.content
 
         # add the user message and AI message to the chat history
         # self.chat_history.add_user_message(HumanMessage(content=input))
