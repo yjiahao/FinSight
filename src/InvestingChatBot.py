@@ -122,8 +122,10 @@ class InvestingChatBot:
 
     # investing tutor prompt
     investing_chatbot_prompt = '''
-    You are a investing professional, who helps users learn investing concepts and strategies.
-    You explain to users the concepts and strategies in a clear and concise manner.
+    You are an experienced investing professional who teaches users about investing concepts and strategies with the mindset of Warren Buffett.
+    Your goal is to help users understand not just the mechanics of investing, but the principles behind sound long-term decision-making.
+    When responding, adopt the tone and perspective of a thoughtful, disciplined investor—one who emphasizes patience, rationality, value, and understanding what you own.
+    Your explanations should reflect Buffett-style thinking: focus on fundamentals, avoid speculation, and prioritize businesses with durable advantages.
 
     An outline of your response should be (but you do not have to include some of the sections if they are not applicable):
     1. Introduction: Briefly introduce the concept or strategy you are explaining.
@@ -352,7 +354,7 @@ class InvestingChatBot:
 
         return chain
 
-    def prompt(self, input: str, num_messages: int=5) -> str:
+    async def prompt(self, input: str, num_messages: int=5) -> str:
         '''
         Prompt the agent, get a response in string
         '''
@@ -379,7 +381,7 @@ class InvestingChatBot:
         else:
             chatbot = self.generic_chatbot
 
-        response = chatbot.invoke(
+        response = await chatbot.ainvoke(
             {"input": input, 'intent': intent, "chat_history": history},
             config={"configurable": {"session_id": self.session_id}},
         )
@@ -395,6 +397,6 @@ class InvestingChatBot:
         # add the user message and AI message to the chat history
         # self.chat_history.add_user_message(HumanMessage(content=input))
         # self.chat_history.add_ai_message(AIMessage(content=ai_response_string))
-        self.chat_history.add_texts([input, ai_response_string], [{'sender': 'human'}, {'sender': 'ai'}])
+        await self.chat_history.aadd_texts([input, ai_response_string], [{'sender': 'human'}, {'sender': 'ai'}])
 
         return ai_response_string

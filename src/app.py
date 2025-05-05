@@ -15,5 +15,5 @@ async def root():
 
 @app.post("/chat/")
 async def chat(message: Message):
-    response = bot.prompt(message.content)
+    response = await bot.prompt(message.content)
     return {"response": response}
