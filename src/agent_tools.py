@@ -377,12 +377,46 @@ def get_current_price(ticker: str):
 
     return round(current_price, 2)
 
+def discounted_cash_flow(ticker: str, discount_rate: float = 0.1) -> dict:
+    '''
+    Calculates the discounted cash flow of the company given a ticker symbol.
+
+    Args:
+        ticker (str): The ticker symbol of the company
+        discount_rate (float): The discount rate to use for the DCF calculation
+
+    Returns:
+        dcf (float): The discounted cash flow of the company to arrive at a price per share
+    '''
+    
+    cash_flow_statement = get_cash_flow(ticker)
+    free_cash_flow = cash_flow_statement['Free Cash Flow']
+    # to play safe, assume cash flow is constant, and we take the average of the last 5 years
+    mean_free_cash_flow = np.nanmean(list(free_cash_flow.values()))
+    pv_future_cash_flows = []
+    for i in range(1, 6):
+        discounted_cash_flow = mean_free_cash_flow / ((1 + discount_rate) ** i)
+        pv_future_cash_flows.append(discounted_cash_flow)
+
+    # calculate terminal value
+    terminal_value = mean_free_cash_flow * (1 + 0.02) / (discount_rate - 0.02)
+    
+    total_cash_flow = sum(pv_future_cash_flows) + terminal_value
+
+    ticker = yf.Ticker(ticker)
+    shares_outstanding = ticker.info.get('sharesOutstanding')
+
+    dcf_price = round(total_cash_flow / shares_outstanding, 2)
+
+    return dcf_price
+
 @tool
 def get_financial_information(ticker: str) -> dict:
     '''
     Get the financial information of the company given a ticker symbol.
     Financial information includes:
         - Graham Number
+        - Discounted Cash Flow (DCF), at 10% discount rate
         - Return on Equity (ROE)
         - Return on Assets (ROA)
         - P/E Ratio
@@ -405,6 +439,7 @@ def get_financial_information(ticker: str) -> dict:
     res = {}
     # calculate the date here
     res['graham_number'] = calculate_graham_number(ticker)
+    res['discounted_cash_flow'] = discounted_cash_flow(ticker)
     res['roe'] = calculate_roe(ticker)
     res['roa'] = calculate_roa(ticker)
     res['pe_ratio'] = get_pe_ratio(ticker)

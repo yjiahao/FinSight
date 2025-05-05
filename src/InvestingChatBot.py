@@ -4,7 +4,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import RedisChatMessageHistory
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentExecutor, create_tool_calling_agent, create_react_agent
 from langchain_tavily import TavilySearch
 from langchain_core.output_parsers import JsonOutputParser
 
@@ -42,6 +42,8 @@ class InvestingChatBot:
     When asked to evaluate a company stock, you must assess it based on multiple fundamental metrics and qualitative factors.
     Your analysis should be balanced and comprehensive, but not limited to any single metric.
 
+    You have access to a tool that helps you get financial information about the company. You must use it.
+
     Your investment analysis should consider the following:
         - Intrinsic value: Estimate whether a stock is undervalued based on discounted cash flows, earnings power, or other reasonable valuation techniques.
         - Economic moat: Assess the company's durable competitive advantages (e.g., strong brand, cost advantages, network effects).
@@ -57,11 +59,14 @@ class InvestingChatBot:
         5. Management
         6. Conclusion (your reasoned opinion, summarizing strengths, risks, and whether it is a sound long-term investment when considering the above factors)
     - Do the analysis over time, not just for the latest quarter or year.
+    - For each section, do not just give a brief answer. Give a detailed analysis of the metric for the company, and its significance.
+    - Always think step by step when performing the financial analysis, before giving the answer for each point.
 
     Other instructions:
         - Show all data over time returned from the tools in your response, if you used them.
-        - If you cite any data in the form of numbers, make sure it is from the tools you used.
-        - Only use the tools if you need to.
+        - You must always cite data in the form of numbers from the tools you used.
+        - Do not make up any data or information, and do not give any opinions that are not based on the data you have.
+
     """
 
     
@@ -225,7 +230,7 @@ class InvestingChatBot:
             ]
         )
         
-        agent = create_tool_calling_agent(chat, self.investing_tools, prompt)
+        agent = create_tool_calling_agent(chat, self.investing_tools,prompt)
         agent_executor = AgentExecutor(agent=agent, tools=self.investing_tools, verbose=True)
 
         # agent_with_chat_history = RunnableWithMessageHistory(
