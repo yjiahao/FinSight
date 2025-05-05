@@ -168,7 +168,7 @@ class InvestingChatBot:
         history = self.get_message_history()
         history.clear()
     
-    def _create_investing_agent(self) -> RunnableWithMessageHistory:
+    def _create_analysis_agent(self):
         '''
         Create an agent with message history. Message history saved to redis database for persistence.
 
@@ -213,7 +213,7 @@ class InvestingChatBot:
         Create the intent LLM for the agent.
 
         Returns:
-            Groq: The Groq model with the specified parameters.
+            chain: The model used for intent classification
         '''
 
         llm = ChatGroq(
@@ -235,6 +235,10 @@ class InvestingChatBot:
         return chain
     
     def _create_search_agent(self) -> AgentExecutor:
+        '''
+        Creates the search agent to use the search tools.
+        The search agent is used to search for news articles and analyze the sentiment of the articles.
+        '''
         chat = ChatGroq(
             temperature=self.temperature,
             model=self.model
