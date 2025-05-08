@@ -5,16 +5,12 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 
-# TODO: add more tools for the LLM using the yfinance API: look at balance sheet, income statement, cash flow, etc.
-# TODO: what happens if we need data from different dataframes? E.g. balance sheet, income statement for calculating ROE
+# TODO: add more functions and incorporate it into the one tool for the LLM using the yfinance API: look at balance sheet, income statement, cash flow, etc.
 # at the moment, just letting agent decide how to use the tools and letting it chain them together
-
-# TODO: Need some way to get the intent of the user from the query, then use the tools accordingly
 
 # tools for the LLM agent to use
 
 # functions to access financial statements
-# NOTE: need to see if we can work with just giving the entire balance sheet, or extract components of it to reduce token size
 def get_balance_sheet(ticker: str) -> dict:
     '''
     Get the balance sheet of the company given a ticker symbol.
@@ -410,6 +406,28 @@ def discounted_cash_flow(ticker: str, discount_rate: float = 0.1) -> dict:
 
     return dcf_price
 
+def get_debt_to_asset_ratio(ticker: str) -> dict:
+    '''
+    Calculates the Debt to Asset ratio, given the stock ticker of the company.
+
+    Args:
+        ticker (str): The stock ticker of the company
+
+    Returns:
+        debt_to_asset_ratio (float): The Debt to Asset ratio of the company over a few years.
+    '''
+    balance_sheet = get_balance_sheet(ticker)
+    total_debt = balance_sheet['Total Debt']
+    total_assets = balance_sheet['Total Assets']
+
+    debt_to_asset_ratio = {}
+    for date, total_debt, total_assets in zip(total_debt.keys(), total_debt.values(), total_assets.values()):
+        if np.isnan(total_debt) or np.isnan(total_assets):
+            continue
+        debt_to_asset_ratio[date] = round(total_debt / total_assets, 2)
+
+    return debt_to_asset_ratio
+
 @tool
 def get_financial_information(ticker: str) -> dict:
     '''
@@ -422,6 +440,7 @@ def get_financial_information(ticker: str) -> dict:
         - P/E Ratio
         - Earnings Yield
         - Debt to Equity Ratio
+        - Debt to Asset Ratio
         - Gross Profit Margin
         - Operating Margin
         - Net Profit Margin
@@ -445,6 +464,7 @@ def get_financial_information(ticker: str) -> dict:
     res['pe_ratio'] = get_pe_ratio(ticker)
     res['earnings_yield'] = get_earnings_yield(ticker)
     res['debt_to_equity_ratio'] = get_debt_to_equity_ratio(ticker)
+    res['debt_to_asset_ratio'] = get_debt_to_asset_ratio(ticker)
     res['gross_profit_margin'] = get_gross_profit_margin(ticker)
     res['operating_margin'] = get_operating_margin(ticker)
     res['net_profit_margin'] = get_net_profit_margin(ticker)

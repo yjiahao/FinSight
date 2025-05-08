@@ -51,20 +51,30 @@ class InvestingChatBot:
         - Management quality: Consider leadership's capital allocation track record, integrity, and long-term thinking.
         - Long-term potential: Favor consistent, predictable businesses over speculative or cyclical ones.
 
-    In your answer, follow this structure:
+    In your answer, follow this structure (but not explicitly. If you think of something else to add, add it):
         1. Valuation & Intrinsic Value
+            - Elaborate on the metrics used and their significance. Not just whether its good or bad.
+            - Comment on the valuation trends over time.
         2. Profitability
+            - Analyze the company's profitability using the profitability metrics
+            - Compare these metrics over at least 5 to 10 years and highlight consistency or variability
         3. Financial Health
+            - Evaluate free cash flow generation and consistency.
+            - Comment on the company's ability to weather economic downturns based on liquidity and leverage.
         4. Moat & Business Quality
-        5. Management
+            - Determine if the company has a durable economic moat (e.g., brand, network effects, switching costs, cost advantages, patents). You may use your own memory here.
+            - Evaluate industry structure: Is the company in a competitive, fragmented market or a dominant player? You may use your own memory here.
+        5. Management Quality:
+            - Examine return on retained earnings, and whether earnings growth justifies reinvestment.
+            - Consider signs of long-term orientation, transparency, and alignment with shareholders (e.g., insider ownership). You may use your own memory here.
         6. Conclusion (your reasoned opinion, summarizing strengths, risks, and whether it is a sound long-term investment when considering the above factors)
-    - Do the analysis over time, not just for the latest quarter or year.
+    - Perform the analysis over time, not just for the latest quarter or year.
     - For each section, do not just give a brief answer. Give a detailed analysis of the metric for the company, and its significance.
     - Always think step by step when performing the financial analysis, before giving the answer for each point.
 
     Other instructions:
         - Show all data over time returned from the tools in your response, if you used them.
-        - You must always cite data in the form of numbers from the tools you used.
+        - YOU MUST ALWAYS CITE DATA IN THE FORM OF NUMBERS FROM THE TOOLS YOU USED.
         - Do not make up any data or information, and do not give any opinions that are not based on the data you have.
 
     """
@@ -125,7 +135,7 @@ class InvestingChatBot:
     Provide your analysis in a clear and concise manner, and make sure to include the most relevant information from the articles you find. Always link to the sources you use.
     '''
 
-    # investing tutor prompt
+    # investing chatbot prompt
     investing_chatbot_prompt = '''
     You are an experienced investing professional who teaches users about investing concepts and strategies with the mindset of Warren Buffett.
     Your goal is to help users understand not just the mechanics of investing, but the principles behind sound long-term decision-making.
@@ -210,9 +220,14 @@ class InvestingChatBot:
             RunnableWithMessageHistory: Agent with message history
         '''
 
-        chat = ChatGroq(
+        # chat = ChatGroq(
+        #     temperature=0.5,
+        #     model='deepseek-r1-distill-llama-70b',
+        # )
+        chat = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
             temperature=0.5,
-            model='deepseek-r1-distill-llama-70b',
+            max_retries=3
         )
 
         # define the prompt
