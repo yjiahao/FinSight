@@ -401,22 +401,38 @@ class InvestingChatBot:
         else:
             chatbot = self.generic_chatbot
 
-        response = await chatbot.ainvoke(
+        # response = await chatbot.ainvoke(
+        #     {"input": input, 'intent': intent, "chat_history": history},
+        #     config={"configurable": {"session_id": self.session_id}},
+        # )
+
+        # # get AI response in string format
+        # if isinstance(response, dict):
+        #     # if agent answered the query
+        #     ai_response_string = response['output']
+        # elif isinstance(response, AIMessage):
+        #     # if it was an AIMessage (chatbot answered the query)
+        #     ai_response_string = response.content
+
+        # Stream response from chatbot
+        ai_response_string = ""
+        async for chunk in chatbot.astream(
             {"input": input, 'intent': intent, "chat_history": history},
             config={"configurable": {"session_id": self.session_id}},
-        )
+        ):
+            if isinstance(chunk, dict):
+                # if agent answered the query
+                token = chunk.get("output", "")
+            elif isinstance(chunk, AIMessage):
+                # if it was an AIMessage (chatbot answered the query)
+                token = chunk.content
+            else:
+                token = str(chunk)
 
-        # get AI response in string format
-        if isinstance(response, dict):
-            # if agent answered the query
-            ai_response_string = response['output']
-        elif isinstance(response, AIMessage):
-            # if it was an AIMessage (chatbot answered the query)
-            ai_response_string = response.content
+            ai_response_string += token
+            yield token  # Stream to caller
 
         # add the user message and AI message to the chat history
         # self.chat_history.add_user_message(HumanMessage(content=input))
         # self.chat_history.add_ai_message(AIMessage(content=ai_response_string))
         await self.chat_history.aadd_texts([input, ai_response_string], [{'sender': 'human'}, {'sender': 'ai'}])
-
-        return ai_response_string
