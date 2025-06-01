@@ -5,13 +5,12 @@ from langchain_core.messages import HumanMessage, AIMessage
 
 from typing import List, Union
 
-from BaseChatBot import BaseChatBot
+from .BaseChatBot import BaseChatBot
 
-from agent_tools import get_financial_information
+from .agent_tools import get_financial_information
 
+# Bot that helps to perform financial analysis of a company stock
 class AnalysisAgent(BaseChatBot):
-    # TODO: add search capability to the agent so that it can search for the company news
-    # or can also add to separate LLM
     prompt_template = """
     You are a financial analysis assistant, helping users evaluate whether a stock is a good long-term investment.
     When asked to evaluate a company stock, you must assess it based on multiple fundamental metrics and qualitative factors.

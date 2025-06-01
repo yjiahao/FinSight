@@ -1,8 +1,9 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from BaseChatBot import BaseChatBot
+from .BaseChatBot import BaseChatBot
 
+# Generic chatbot class that can answer a wide range of questions
 class GenericChatBot(BaseChatBot):
     # TODO: improve on the prompt template to be more specific or useful
     prompt_template = '''

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+# Base class for all chatbots
 class BaseChatBot(ABC):
     prompt_template: str
     tools: list
