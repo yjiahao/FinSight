@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class Message(BaseModel):
-    content: str
+    content: str = Field(..., description="The content of the message")
