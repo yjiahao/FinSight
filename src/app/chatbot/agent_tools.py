@@ -5,6 +5,9 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 
+from bs4 import BeautifulSoup, SoupStrainer 
+from langchain_community.document_loaders import WebBaseLoader
+
 # TODO: add more functions and incorporate it into the one tool for the LLM using the yfinance API: look at balance sheet, income statement, cash flow, etc.
 # at the moment, just letting agent decide how to use the tools and letting it chain them together
 
@@ -473,3 +476,28 @@ def get_financial_information(ticker: str) -> dict:
     res['current_price'] = get_current_price(ticker)
 
     return res
+
+@tool
+def get_webpage_content(url: str) -> str:
+    '''
+    Gets the content of a webpage given a URL.
+
+    Args:
+        url (str): The URL of the webpage
+
+    Returns:
+        str: The content of the webpage
+    '''
+    loader = WebBaseLoader(
+        web_paths=[url],
+        bs_kwargs={
+            'parse_only': SoupStrainer(
+                name=['h2', 'p'],
+            )
+        }
+    )
+
+    docs = loader.load()
+    text = docs[0].page_content
+
+    return text

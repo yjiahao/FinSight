@@ -7,7 +7,9 @@ from langchain_tavily import TavilySearch
 
 from typing import List, Union
 
-from .BaseChatBot import BaseChatBot
+from BaseChatBot import BaseChatBot
+
+from agent_tools import get_webpage_content
 
 # SearchAgent class that searches for financial news articles and analyzes their sentiment
 class SearchAgent(BaseChatBot):
@@ -30,7 +32,8 @@ class SearchAgent(BaseChatBot):
                 language="en",
                 max_results=5,
                 sort_by="relevancy",
-            )
+            ),
+            get_webpage_content
         ]
         self.bot = self._init_bot()
 
