@@ -5,3 +5,4 @@ __pycache__/
 /data
 *.joblib
 *.pth.tar
+*.json
