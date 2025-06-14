@@ -9,6 +9,8 @@ from typing import List, Union
 
 from .BaseChatBot import BaseChatBot
 
+from .agent_tools import get_webpage_content
+
 # SearchAgent class that searches for financial news articles and analyzes their sentiment
 class SearchAgent(BaseChatBot):
     prompt_template = '''

@@ -1,9 +1,13 @@
 from langchain_core.tools import tool
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_tavily import TavilySearch
 
 import yfinance as yf
 
 import pandas as pd
 import numpy as np
+
+from bs4 import BeautifulSoup, SoupStrainer
 
 # TODO: add more functions and incorporate it into the one tool for the LLM using the yfinance API: look at balance sheet, income statement, cash flow, etc.
 # at the moment, just letting agent decide how to use the tools and letting it chain them together
@@ -471,5 +475,48 @@ def get_financial_information(ticker: str) -> dict:
     res['current_ratio'] = get_current_ratio(ticker)
     res['working_capital'] = get_working_capital(ticker)
     res['current_price'] = get_current_price(ticker)
+
+    return res
+
+@tool
+def get_webpage_content(query: str) -> dict:
+    '''
+    Gets the content and link of a webpage given a query in natural language (in a dictionary format).
+
+    Args:
+        query (str): The query to search for, e.g. "What is the weather in Singapore?"
+
+    Returns:
+        res (dict): A dictionary with the keys 'url' and 'content', where 'url' is the link to the webpage, and 'content' is the content of the webpage.
+    '''
+    search = TavilySearch(
+        api_key="TAVILY_API_KEY",
+        search_type="general",
+        language="en",
+        max_results=1, # only 1 result for investopedia articles
+        sort_by="relevancy",
+    )
+
+    search_result = search.invoke(
+        input=f"{query} investopedia", # inject investopedia to always find investopedia articles
+    )
+
+    # create a loader to load the webpage content
+    loader = WebBaseLoader(
+        web_paths=[search_result['results'][0]['url']],
+        bs_kwargs={
+            'parse_only': SoupStrainer(
+                name=['h2', 'p'], # take content from only these tags since they are the main content of the article
+            )
+        }
+    )
+
+    docs = loader.load()
+    text = docs[0].page_content
+
+    res = {
+        'url': search_result['results'][0]['url'],
+        'content': text
+    }
 
     return res

@@ -3,7 +3,7 @@ from .ChatHistory import ChatHistory
 from .GenericChatBot import GenericChatBot
 from .IntentParser import IntentParser
 from .SearchAgent import SearchAgent
-from .TutorChatBot import TutorChatBot
+from .TutorAgent import TutorAgent
 
 from dotenv import load_dotenv
 
@@ -19,7 +19,7 @@ class InvestingChatBot:
         self.intent_parser = IntentParser()
         self.search_agent = SearchAgent()
         self.analysis_agent = AnalysisAgent()
-        self.tutor_chatbot = TutorChatBot()
+        self.tutor_chatbot = TutorAgent()
         self.generic_chatbot = GenericChatBot()
 
     async def prompt(self, message: str):
