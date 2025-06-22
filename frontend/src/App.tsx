@@ -6,6 +6,7 @@ import ListGroup from "./components/ListGroup";
 import ChatInterface from "./components/ChatInterface";
 import Button from "./components/Button";
 import LineChart from "./components/StockGraphs";
+import Selector from "./components/Selector";
 
 import Split from "react-split";
 
@@ -61,6 +62,20 @@ function App() {
         }}
       >
         <LineChart />
+        <div
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Selector
+            startDate="2010-01-01"
+            endDate="2025-01-01"
+            stock="AAPL"
+          ></Selector>
+        </div>
       </div>
 
       {/* Gutter */}
