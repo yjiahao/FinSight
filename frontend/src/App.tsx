@@ -5,7 +5,7 @@ import Alert from "./components/Alert";
 import ListGroup from "./components/ListGroup";
 import ChatInterface from "./components/ChatInterface";
 import Button from "./components/Button";
-import LineChart from "./components/StockGraphs";
+import LineChart from "./components/LineChart";
 import Selector from "./components/Selector";
 
 import Split from "react-split";
