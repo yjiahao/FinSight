@@ -6,7 +6,6 @@ interface Message {
   isOutgoing: boolean;
   timestamp: string;
   date: string;
-  avatarURL?: string;
 }
 
 interface ChatBarProps {
@@ -32,11 +31,19 @@ function ChatBar({ messages, onSendMessage }: ChatBarProps) {
 
   return (
     <div className="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
-      <img
+      {/* <img
         src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp"
         alt="avatar 3"
         style={{ width: "40px", height: "40px" }}
-      />
+      /> */}
+      <i
+        className={"bi bi-person-circle"}
+        style={{
+          fontSize: "1.7rem",
+          paddingRight: "0.5rem",
+          color: "cornflowerblue",
+        }}
+      ></i>
       <input
         type="text"
         className="form-control form-control-lg"
