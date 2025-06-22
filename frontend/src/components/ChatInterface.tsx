@@ -12,7 +12,6 @@ interface Message {
   isOutgoing: boolean;
   timestamp: string;
   date: string;
-  avatarURL?: string;
 }
 
 function ChatInterface() {
@@ -23,8 +22,6 @@ function ChatInterface() {
       isOutgoing: false,
       timestamp: "12:00 PM",
       date: "15/06/2025",
-      avatarURL:
-        "https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp",
     },
     {
       id: "2",
@@ -32,8 +29,6 @@ function ChatInterface() {
       isOutgoing: true,
       timestamp: "12:01 PM",
       date: "15/06/2025",
-      avatarURL:
-        "https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp",
     },
   ]);
 
@@ -56,9 +51,6 @@ function ChatInterface() {
           minute: "2-digit",
         }),
         date: new Date().toLocaleDateString("en-GB"),
-        avatarURL:
-          // hardcode avatar URL for now
-          "https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp",
       };
 
       setMessages((prev) => prev.concat(newMessage));
@@ -73,7 +65,7 @@ function ChatInterface() {
         className="pt-3 pe-3"
         style={{
           position: "relative",
-          height: "85vh",
+          height: "80vh",
           overflowY: "auto",
           overflowX: "hidden",
         }}
