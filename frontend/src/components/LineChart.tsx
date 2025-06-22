@@ -42,22 +42,21 @@ function LineChart() {
       legend: {
         position: "top" as const,
       },
-      title: {
-        display: true,
-        text: "Stock Price Chart",
-      },
     },
   };
 
   return (
-    <>
-      <div style={{ height: "80%", margin: "0 auto" }}>
-        <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-          Stock Price Prediction
-        </h3>
+    <div className="container-fluid margin-bottom">
+      <div style={{ height: "80%", margin: "auto" }}>
+        <div className="text-center mb-4">
+          <h3 className="text-dark mb-1">📊 Stock Price Prediction</h3>
+          <p className="text-muted small mb-0">
+            Configure your analysis parameters below
+          </p>
+        </div>
         <Line data={data} options={options} />
       </div>
-    </>
+    </div>
   );
 }
 
