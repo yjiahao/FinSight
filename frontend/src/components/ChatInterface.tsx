@@ -78,7 +78,6 @@ function ChatInterface() {
             isOutgoing={message.isOutgoing}
             timestamp={message.timestamp}
             date={message.date}
-            avatarURL={message.avatarURL}
           />
         ))}
         {/* Auto-scroll target */}

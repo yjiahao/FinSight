@@ -48,11 +48,18 @@ function LineChart() {
   return (
     <div className="container-fluid margin-bottom">
       <div style={{ height: "80%", margin: "auto" }}>
-        <div className="text-center mb-4">
-          <h3 className="text-dark mb-1">📊 Stock Price Prediction</h3>
-          <p className="text-muted small mb-0">
-            Configure your analysis parameters below
-          </p>
+        <div className="d-flex align-items-center justify-content-left mb-4">
+          <img
+            src="../main-logo-black-transparent.svg"
+            alt="FinSight Logo"
+            style={{ width: "80px", height: "80px", marginRight: "12px" }}
+          />
+          <div>
+            <h3 className="text-dark mb-1">FinSight</h3>
+            <p className="text-muted small mb-0">
+              Helping you make sense of financial data.
+            </p>
+          </div>
         </div>
         <Line data={data} options={options} />
       </div>

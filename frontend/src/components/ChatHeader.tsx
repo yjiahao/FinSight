@@ -16,7 +16,6 @@ function ChatHeader() {
       <h3
         style={{
           margin: 0,
-          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
         }}
       >
         Investment Analysis Bot

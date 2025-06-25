@@ -51,53 +51,55 @@ function App() {
   //   </div>
   // );
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
-      {/* Left column: 70% */}
-      <div
-        style={{
-          flex: 7,
-          overflow: "auto",
-          padding: "1rem",
-          background: "#f5f5f5",
-        }}
-      >
-        <LineChart />
+    <>
+      <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
+        {/* Left column: 70% */}
         <div
           style={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
+            flex: 7,
+            overflow: "auto",
+            padding: "1rem",
+            background: "#f5f5f5",
           }}
         >
-          <Selector
-            startDate="2010-01-01"
-            endDate="2025-01-01"
-            stock="AAPL"
-          ></Selector>
+          <LineChart />
+          <div
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Selector
+              startDate="2010-01-01"
+              endDate="2025-01-01"
+              stock="AAPL"
+            ></Selector>
+          </div>
+        </div>
+
+        {/* Gutter */}
+        <div
+          style={{
+            width: "2px",
+            backgroundColor: "#ccc",
+          }}
+        />
+
+        {/* Right column: 30% */}
+        <div
+          style={{
+            flex: 3,
+            overflow: "auto",
+            padding: "1rem",
+            background: "#ffffff",
+          }}
+        >
+          <ChatInterface />
         </div>
       </div>
-
-      {/* Gutter */}
-      <div
-        style={{
-          width: "2px",
-          backgroundColor: "#ccc",
-        }}
-      />
-
-      {/* Right column: 30% */}
-      <div
-        style={{
-          flex: 3,
-          overflow: "auto",
-          padding: "1rem",
-          background: "#ffffff",
-        }}
-      >
-        <ChatInterface />
-      </div>
-    </div>
+    </>
   );
 }
 
