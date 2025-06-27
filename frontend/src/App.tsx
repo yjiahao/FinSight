@@ -51,55 +51,47 @@ function App() {
   //   </div>
   // );
   return (
-    <>
-      <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
-        {/* Left column: 70% */}
-        <div
-          style={{
-            flex: 7,
-            overflow: "auto",
-            padding: "1rem",
-            background: "#f5f5f5",
-          }}
-        >
-          <LineChart />
+    <div className="container-fluid p-0">
+      <div className="row g-0 min-vh-100">
+        {/* Chart and Selector - Full width on mobile, 70% on large screens */}
+        <div className="col-12 col-lg-8 order-1 order-lg-1">
           <div
-            style={{
-              flex: 1,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-            }}
+            className="d-flex flex-column h-100"
+            style={{ background: "#f5f5f5" }}
           >
-            <Selector
-              startDate="2010-01-01"
-              endDate="2025-01-01"
-              stock="AAPL"
-            ></Selector>
+            {/* Chart */}
+            <div className="flex-grow-1 p-3">
+              <div style={{ height: "100%" }}>
+                <LineChart />
+              </div>
+            </div>
+
+            {/* Selector */}
+            <div className="p-3">
+              <Selector
+                startDate="2010-01-01"
+                endDate="2025-01-01"
+                stock="AAPL"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Gutter */}
-        <div
-          style={{
-            width: "2px",
-            backgroundColor: "#ccc",
-          }}
-        />
-
-        {/* Right column: 30% */}
-        <div
-          style={{
-            flex: 3,
-            overflow: "auto",
-            padding: "1rem",
-            background: "#ffffff",
-          }}
-        >
-          <ChatInterface />
+        {/* Chat Interface - Full width on mobile (goes below), 30% on large screens */}
+        <div className="col-12 col-lg-4 order-2 order-lg-2">
+          <div
+            className="h-100 p-3"
+            style={{
+              background: "#ffffff",
+              borderLeft: "2px solid #ccc",
+              minHeight: "50vh", // Ensure minimum height on mobile
+            }}
+          >
+            <ChatInterface />
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
