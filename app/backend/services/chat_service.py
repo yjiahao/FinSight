@@ -2,9 +2,9 @@ import json
 
 from typing import AsyncGenerator
 
-from app.backend.chatbot import bot
+from fastapi import Request
 
-async def generate_chat_response(message: str) -> AsyncGenerator[str, None]:
+async def generate_chat_response(request: Request, message: str) -> AsyncGenerator[str, None]:
     '''
     Service function to generate chat response asynchronously.
 
@@ -16,6 +16,7 @@ async def generate_chat_response(message: str) -> AsyncGenerator[str, None]:
         containing the response tokens.
     '''
     async def response_generator():
+        bot = request.app.state.bot
         async for token in bot.prompt(message):
             yield json.dumps({"response": token}) + "\n"
     return response_generator()
