@@ -2,7 +2,7 @@ import json
 
 from typing import AsyncGenerator
 
-from app.chatbot import bot
+from app.backend.chatbot import bot
 
 async def generate_chat_response(message: str) -> AsyncGenerator[str, None]:
     '''

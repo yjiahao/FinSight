@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from app.models.chat_schema import Message
-from app.chatbot import bot
-from app.services.chat_service import generate_chat_response
+from app.backend.models.chat_schema import Message
+from app.backend.chatbot import bot
+from app.backend.services.chat_service import generate_chat_response
 
 router = APIRouter()
 
