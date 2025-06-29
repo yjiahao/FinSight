@@ -24,3 +24,23 @@ margin-top: -.75rem;
   background-color: #4b4a4a;
   cursor: col-resize;
 }
+
+.typing-effect {
+  border-right: 2px solid #6c757d;
+  animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite 3s;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  animation-fill-mode: forwards;
+  display: inline-block;
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: #6c757d; }
+}

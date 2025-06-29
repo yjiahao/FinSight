@@ -16,20 +16,20 @@ interface Message {
 
 function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      text: "Hello! How can I help you today?",
-      isOutgoing: false,
-      timestamp: "12:00 PM",
-      date: "15/06/2025",
-    },
-    {
-      id: "2",
-      text: "I need help with my investment portfolio",
-      isOutgoing: true,
-      timestamp: "12:01 PM",
-      date: "15/06/2025",
-    },
+    // {
+    //   id: "1",
+    //   text: "Hello! How can I help you today?",
+    //   isOutgoing: false,
+    //   timestamp: "12:00 PM",
+    //   date: "15/06/2025",
+    // },
+    // {
+    //   id: "2",
+    //   text: "I need help with my investment portfolio",
+    //   isOutgoing: true,
+    //   timestamp: "12:01 PM",
+    //   date: "15/06/2025",
+    // },
   ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -71,15 +71,40 @@ function ChatInterface() {
         }}
       >
         {/* Messages render in the scrollable container */}
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            text={message.text}
-            isOutgoing={message.isOutgoing}
-            timestamp={message.timestamp}
-            date={message.date}
-          />
-        ))}
+        {/* function to render messages. if no messages, then render animation to encourage user to type something */}
+        {(() => {
+          if (messages.length === 0) {
+            return (
+              <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center">
+                <div className="mb-4">
+                  <i
+                    className="bi bi-chat-dots"
+                    style={{ fontSize: "3rem", color: "#6c757d" }}
+                  ></i>
+                </div>
+                <h5 className="text-muted mb-2">No messages yet</h5>
+                <p className="text-muted small">
+                  <span className="typing-effect">
+                    Ask me about stocks, market trends, or investment
+                    strategies!
+                  </span>
+                </p>
+              </div>
+            );
+          } else {
+            return messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                text={message.text}
+                isOutgoing={message.isOutgoing}
+                timestamp={message.timestamp}
+                date={message.date}
+              />
+            ));
+          }
+        })()}
+        {/* Auto-scroll target */}
+        <div ref={messagesEndRef} />
         {/* Auto-scroll target */}
         <div ref={messagesEndRef} />
       </div>
