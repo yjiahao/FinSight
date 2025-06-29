@@ -59,7 +59,7 @@ function ChatInterface() {
 
   return (
     <div>
-      <ChatHeader></ChatHeader>
+      {/* <ChatHeader></ChatHeader> */}
       {/* Messages Container */}
       <div
         className="pt-3 pe-3"

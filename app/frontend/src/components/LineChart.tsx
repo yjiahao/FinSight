@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,6 +23,8 @@ ChartJS.register(
 );
 
 function LineChart() {
+  const chartRef = useRef<any>(null);
+
   const data = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
     datasets: [
@@ -38,6 +40,7 @@ function LineChart() {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top" as const,
@@ -45,24 +48,36 @@ function LineChart() {
     },
   };
 
+  useEffect(() => {
+    const resizeChart = () => {
+      if (chartRef.current) {
+        chartRef.current.resize();
+      }
+    };
+
+    // Listen for window resize
+    window.addEventListener("resize", resizeChart);
+
+    // Use ResizeObserver to detect container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      resizeChart();
+    });
+
+    // Observe the chart container
+    const chartContainer = chartRef.current?.canvas?.parentElement;
+    if (chartContainer) {
+      resizeObserver.observe(chartContainer);
+    }
+
+    return () => {
+      window.removeEventListener("resize", resizeChart);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
-    <div className="container-fluid margin-bottom">
-      <div style={{ height: "80%", margin: "auto" }}>
-        <div className="d-flex align-items-center justify-content-left mb-4">
-          <img
-            src="../main-logo-black-transparent.svg"
-            alt="FinSight Logo"
-            style={{ width: "80px", height: "80px", marginRight: "12px" }}
-          />
-          <div>
-            <h3 className="text-dark mb-1">FinSight</h3>
-            <p className="text-muted small mb-0">
-              Helping you make sense of financial data.
-            </p>
-          </div>
-        </div>
-        <Line data={data} options={options} />
-      </div>
+    <div style={{ height: "100%", width: "100%" }}>
+      <Line ref={chartRef} data={data} options={options} />
     </div>
   );
 }

@@ -36,7 +36,7 @@ function Selector({ stock, startDate, endDate }: SelectorProps) {
     console.log(`End Date changed to: ${newEnd}`);
   };
   return (
-    <div className="container-fluid" style={{ marginTop: "2rem" }}>
+    <div className="container-fluid">
       <div
         className="p-4 rounded-3"
         style={{
