@@ -4,6 +4,8 @@ import ChatMessage from "./ChatMessage";
 import ChatBar from "./ChatBar";
 import ChatHeader from "./ChatHeader";
 
+import { CHAT_URL } from "../constants";
+
 import "../App.css";
 
 interface Message {
@@ -39,6 +41,71 @@ function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // stream response from server
+  const streamResponse = async (message: string) => {
+    const controller = new AbortController();
+
+    const response = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: message }),
+      signal: controller.signal,
+    });
+
+    if (!response.body) return;
+
+    // Step 1: Add placeholder response message (empty for now)
+    const botMessageId = Date.now().toString();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: botMessageId,
+        text: "",
+        isOutgoing: false,
+        timestamp: new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        date: new Date().toLocaleDateString("en-GB"),
+      },
+    ]);
+
+    // Step 2: Stream and incrementally update that message
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.trim()) {
+          try {
+            const json = JSON.parse(line);
+            const newContent = json.response;
+
+            // Step 3: Update the message with matching ID
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === botMessageId
+                  ? { ...msg, text: msg.text + newContent }
+                  : msg
+              )
+            );
+          } catch (err) {
+            console.error("Failed to parse:", line);
+          }
+        }
+      }
+    }
+  };
+
   // Handle new messages from ChatBar
   const handleSendMessage = (text: string) => {
     if (text.trim()) {
@@ -54,6 +121,8 @@ function ChatInterface() {
       };
 
       setMessages((prev) => prev.concat(newMessage));
+
+      streamResponse(text);
     }
   };
 
@@ -103,8 +172,6 @@ function ChatInterface() {
             ));
           }
         })()}
-        {/* Auto-scroll target */}
-        <div ref={messagesEndRef} />
         {/* Auto-scroll target */}
         <div ref={messagesEndRef} />
       </div>
