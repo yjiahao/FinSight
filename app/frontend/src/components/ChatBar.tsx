@@ -30,7 +30,7 @@ function ChatBar({ messages, onSendMessage }: ChatBarProps) {
   };
 
   return (
-    <div className="text-muted d-flex justify-content-start align-items-center pt-3 mt-2 m-3">
+    <div className="text-muted d-flex justify-content-start align-items-center pt-3 mt-2">
       <input
         type="text"
         className="form-control form-control-lg"
