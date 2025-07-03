@@ -93,10 +93,9 @@ function Selector({ stock, startDate, endDate }: SelectorProps) {
               {/* Action Button */}
               <div className="col-md-3">
                 <button
-                  className="btn btn-primary px-4 py-2 shadow-sm w-100"
+                  className="btn btn-dark px-4 py-2"
                   onClick={logValues}
                   style={{
-                    background: "linear-gradient(135deg, #007bff, #0056b3)",
                     border: "none",
                   }}
                 >
