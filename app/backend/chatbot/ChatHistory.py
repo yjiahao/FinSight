@@ -6,8 +6,9 @@ import redis
 
 import asyncio
 
-# before this, run the following: docker run -d -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
-REDIS_URL = "redis://localhost:6379/0"
+from app.backend.core.config import settings
+
+# NOTE: before this, run the following: docker run -d -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
 
 # chat history class that uses Redis as a vector store
 class ChatHistory:
@@ -18,7 +19,7 @@ class ChatHistory:
         self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
         self.config = RedisConfig(
             index_name=self.session_id,
-            redis_url=REDIS_URL,
+            redis_url=settings.redis_url,
             metadata_schema=[
                 {
                     "name": "sender",
