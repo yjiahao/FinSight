@@ -17,26 +17,17 @@ function ChatMessage({ text, isOutgoing, timestamp, date }: ChatMessageProps) {
         isOutgoing ? "justify-content-end" : "justify-content-start"
       }`}
     >
-      <i
-        className={`bi ${isOutgoing ? "bi-person-circle" : "bi-android2"}`}
-        style={{
-          fontSize: "1.7rem",
-          color: isOutgoing ? "cornflowerblue" : "#6c757d",
-        }}
-      ></i>
       <div>
         <p
-          // TODO: is there anything we can do to make it look nicer? Like the colour of the chat boxes from the bot and from the user?
           className={`small p-2 ms-3 mb-1 rounded-3 ${
-            isOutgoing
-              ? "bg-gradient text-white"
-              : "bg-secondary bg-gradient text-white"
+            isOutgoing ? "text-white" : "text-dark"
           }`}
           style={{
-            backgroundColor: "cornflowerblue",
+            backgroundColor: isOutgoing ? "#495057" : "#f8f9fa",
+            border: isOutgoing ? "none" : "1px solid #dee2e6",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           }}
         >
-          {/* <pre style={{ whiteSpace: "pre-wrap" }}>{text}</pre> */}
           <ReactMarkdown>{text}</ReactMarkdown>
         </p>
         <p className="small ms-3 mb-3 rounded-3 text-muted float-end">

@@ -30,38 +30,15 @@ function ChatBar({ messages, onSendMessage }: ChatBarProps) {
   };
 
   return (
-    <div className="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
-      {/* <img
-        src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp"
-        alt="avatar 3"
-        style={{ width: "40px", height: "40px" }}
-      /> */}
-      <i
-        className={"bi bi-person-circle"}
-        style={{
-          fontSize: "1.7rem",
-          paddingRight: "0.5rem",
-          color: "cornflowerblue",
-        }}
-      ></i>
+    <div className="text-muted d-flex justify-content-start align-items-center pt-3 mt-2 m-3">
       <input
         type="text"
         className="form-control form-control-lg"
-        id="messageInput"
         placeholder="Type message"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={handleKeyPress}
+        onKeyDown={handleKeyPress}
       />
-      <a className="ms-1 text-muted" href="#!">
-        <i className="fas fa-paperclip"></i>
-      </a>
-      <a className="ms-3 text-muted" href="#!">
-        <i className="fas fa-smile"></i>
-      </a>
-      <a className="ms-3" href="#!" onClick={handleSendMessage}>
-        <i className="fas fa-paper-plane"></i>
-      </a>
     </div>
   );
 }
