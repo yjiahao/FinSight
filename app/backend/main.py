@@ -15,6 +15,9 @@ async def lifespan(app: FastAPI):
     # TODO: change session id in the future to be dynamic
     bot = InvestingChatBot(session_id='1234')  # hardcode session id for now
     app.state.bot = bot
+
+    # create a global instance of the session manager
+    # TODO: just create a login, and let the session id get tied to the user in the database or something
     yield
 
     # clean up and release the resources
