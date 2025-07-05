@@ -7,8 +7,6 @@ class Settings(BaseSettings):
 
     groq_api_key: str
     google_api_key: str
-    google_cse_id: str
-    alphavantage_api_key: str
     tavily_api_key: str
 
 settings = Settings()
