@@ -6,22 +6,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.backend.api.endpoints.v1 import router
 from app.backend.core.config import settings
 
-from app.backend.chatbot.InvestingChatBot import InvestingChatBot
+from app.backend.services.session_manager import SessionManager
 
 # add app lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # load chatbot
-    # TODO: change session id in the future to be dynamic
-    bot = InvestingChatBot(session_id='1234')  # hardcode session id for now
-    app.state.bot = bot
-
+    # load state variables
     # create a global instance of the session manager
-    # TODO: just create a login, and let the session id get tied to the user in the database or something
+    app.state.session_manager = SessionManager()
+    # TODO: currently we are creating a new ChatHistory for each session, meaning the embedding model will be loaded multiple times.
+    #       we should consider using a shared instance of the embedding model and chat history to save resources.
+    #       this will require some refactoring of the ChatHistory class to allow for shared instances
     yield
 
     # clean up and release the resources
-    del app.state.bot
+    del app.state.session_manager
 
 # declare origins for CORS
 origins = [
