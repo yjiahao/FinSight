@@ -9,4 +9,8 @@ class Settings(BaseSettings):
     google_api_key: str
     tavily_api_key: str
 
+    # for password hashing and JWT
+    jwt_secret_key: str
+    algorithm: str = "HS256"
+
 settings = Settings()
