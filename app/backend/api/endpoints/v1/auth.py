@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
+from starlette.responses import RedirectResponse
+
 from typing import Annotated
 
 from sqlalchemy.orm import Session
@@ -41,7 +43,13 @@ async def register_user(
     db.add(create_user_model)
     db.commit()
 
-# login endpoint
+    # let the frontend handle the redirect
+    return {
+        'success': True,
+        'message': 'User created successfully.'
+    }
+
+# login post endpoint
 @router.post("/login", response_model=Token)
 async def login_for_access(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
