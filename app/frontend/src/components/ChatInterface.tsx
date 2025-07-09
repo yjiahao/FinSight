@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Fragment } from "react";
 import ChatMessage from "./ChatMessage";
 import ChatBar from "./ChatBar";
@@ -44,65 +45,102 @@ function ChatInterface() {
   // stream response from server
   const streamResponse = async (message: string) => {
     const controller = new AbortController();
+    const token = localStorage.getItem("access_token");
 
-    const response = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: message }),
-      signal: controller.signal,
-    });
+    // If no token, redirect to login
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
-    if (!response.body) return;
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Add JWT token here
+        },
+        body: JSON.stringify({ content: message }),
+        signal: controller.signal,
+      });
 
-    // Step 1: Add placeholder response message (empty for now)
-    const botMessageId = Date.now().toString();
+      // Handle 401 Unauthorized (token expired/invalid)
+      if (response.status === 401) {
+        localStorage.removeItem("access_token");
+        navigate("/login");
+        return;
+      }
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: botMessageId,
-        text: "",
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (!response.body) return;
+
+      // Step 1: Add placeholder response message (empty for now)
+      const botMessageId = Date.now().toString();
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: botMessageId,
+          text: "",
+          isOutgoing: false,
+          timestamp: new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          date: new Date().toLocaleDateString("en-GB"),
+        },
+      ]);
+
+      // Step 2: Stream and incrementally update that message
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const json = JSON.parse(line);
+              const newContent = json.response;
+
+              // Step 3: Update the message with matching ID
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === botMessageId
+                    ? { ...msg, text: msg.text + newContent }
+                    : msg
+                )
+              );
+            } catch (err) {
+              console.error("Failed to parse:", line);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in streamResponse:", error);
+      // Handle error - maybe show error message to user
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: "Sorry, there was an error processing your request.",
         isOutgoing: false,
         timestamp: new Date().toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
         }),
         date: new Date().toLocaleDateString("en-GB"),
-      },
-    ]);
-
-    // Step 2: Stream and incrementally update that message
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.trim()) {
-          try {
-            const json = JSON.parse(line);
-            const newContent = json.response;
-
-            // Step 3: Update the message with matching ID
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === botMessageId
-                  ? { ...msg, text: msg.text + newContent }
-                  : msg
-              )
-            );
-          } catch (err) {
-            console.error("Failed to parse:", line);
-          }
-        }
-      }
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     }
   };
 

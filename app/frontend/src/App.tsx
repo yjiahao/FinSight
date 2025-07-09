@@ -1,57 +1,42 @@
-import React, { useState } from "react";
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
-import ChatInterface from "./components/ChatInterface";
-import LineChart from "./components/LineChart";
-import Selector from "./components/Selector";
-import NavBar from "./components/Navbar";
+import LoginPage from "./components/LoginPage";
+import RegisterPage from "./components/RegisterPage"; // Add this import
+import ChatPage from "./components/ChatPage";
 
 function App() {
-  const [alertVisible, setAlertVisibility] = useState(false);
-
   return (
-    <div className="container-fluid p-0" style={{ height: "100vh" }}>
-      <NavBar />
-
-      {/* Main content - subtract navbar height */}
-      <div className="row g-0" style={{ height: "calc(100vh - 80px)" }}>
-        {/* Chart and Selector - Full width on mobile, 70% on large screens */}
-        <div className="col-12 col-lg-8 order-1 order-lg-1">
-          <div
-            className="d-flex flex-column h-100"
-            style={{ background: "#f5f5f5" }}
-          >
-            {/* Chart - 80% of remaining space */}
-            <div className="p-3" style={{ height: "80%" }}>
-              <div style={{ height: "100%", width: "100%" }}>
-                <LineChart />
-              </div>
-            </div>
-
-            {/* Selector - 20% of remaining space */}
-            <div className="p-0 mt-3" style={{ height: "20%" }}>
-              <Selector
-                startDate="2010-01-01"
-                endDate="2025-01-01"
-                stock="AAPL"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Chat Interface - Full width on mobile (goes below), 30% on large screens */}
-        <div className="col-12 col-lg-4 order-2 order-lg-2">
-          <div
-            className="h-100 p-3"
-            style={{
-              background: "#ffffff",
-              borderLeft: "2px solid #ccc",
-            }}
-          >
-            <ChatInterface />
-          </div>
-        </div>
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />{" "}
+        {/* Add this route */}
+        <Route
+          path="/chat"
+          element={
+            !!localStorage.getItem("access_token") ? (
+              <ChatPage />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to={!!localStorage.getItem("access_token") ? "/chat" : "/login"}
+            />
+          }
+        />
+      </Routes>
+    </Router>
   );
 }
 
