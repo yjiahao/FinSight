@@ -16,11 +16,14 @@ async def chat(
     # get global session manager from app state
     session_manager = request.app.state.session_manager
 
-    # get the bot instance for the current user session
-    bot = session_manager.get_or_create_bot(str(current_user["id"]))
+    # get global bot instance from app state
+    bot = request.app.state.bot
+
+    # get the chat history instance for the current user session
+    chat_history = session_manager.get_or_create_history(str(current_user["id"]))
 
     # generate and return the chat response as a streaming response
     return StreamingResponse(
-        await generate_chat_response(bot, message.content),
+        await generate_chat_response(bot, chat_history, message.content),
         media_type="application/json"
     )

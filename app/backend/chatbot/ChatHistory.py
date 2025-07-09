@@ -12,7 +12,7 @@ from app.backend.core.config import settings
 
 # chat history class that uses Redis as a vector store
 class ChatHistory:
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, embeddings: HuggingFaceEmbeddings):
         self.session_id = session_id
 
         # initalize Redis client
@@ -27,12 +27,10 @@ class ChatHistory:
                 }
             ]
         )
-        # intialize embedding model
-        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
         # initialize Redis vector store as chat history
         self.chat_history = RedisVectorStore(
             config=self.config,
-            embeddings=self.embeddings
+            embeddings=embeddings
         )
 
     def clear_history(self):

@@ -2,9 +2,14 @@ import json
 
 from typing import AsyncGenerator
 
+from app.backend.chatbot.ChatHistory import ChatHistory
 from app.backend.chatbot.InvestingChatBot import InvestingChatBot
 
-async def generate_chat_response(bot: InvestingChatBot, message: str) -> AsyncGenerator[str, None]:
+async def generate_chat_response(
+        bot: InvestingChatBot,
+        chat_history: ChatHistory,
+        message: str
+) -> AsyncGenerator[str, None]:
     '''
     Service function to generate chat response asynchronously.
 
@@ -16,6 +21,6 @@ async def generate_chat_response(bot: InvestingChatBot, message: str) -> AsyncGe
         containing the response tokens.
     '''
     async def response_generator():
-        async for token in bot.prompt(message):
+        async for token in bot.prompt(message, chat_history):
             yield json.dumps({"response": token}) + "\n"
     return response_generator()

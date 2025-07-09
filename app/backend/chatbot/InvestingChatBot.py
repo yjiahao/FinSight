@@ -11,10 +11,7 @@ load_dotenv()
 
 # main class that integrates all components of the investing chatbot
 class InvestingChatBot:
-    def __init__(self, session_id: str):
-        self.session_id = session_id
-
-        self.chat_history = ChatHistory(session_id)
+    def __init__(self):
 
         self.intent_parser = IntentParser()
         self.search_agent = SearchAgent()
@@ -22,13 +19,13 @@ class InvestingChatBot:
         self.tutor_chatbot = TutorAgent()
         self.generic_chatbot = GenericChatBot()
 
-    async def prompt(self, message: str):
+    async def prompt(self, message: str, chat_history: ChatHistory):
         '''Process a user message and return the AI's response based on the intent and chat history.'''
         # get intent of the message
         intent = self.intent_parser.prompt({"input": message})
 
         # get chat history
-        history = self.chat_history.retrieve(message)
+        history = chat_history.retrieve(message)
 
         # decide which chatbot to use based on the intent
         chatbot = None
@@ -52,7 +49,7 @@ class InvestingChatBot:
             yield token
 
         # add messages to chat history
-        await self.chat_history.add_messages(
+        await chat_history.add_messages(
             messages=[message, ai_response_string],
             metadata=[
                 {"sender": "human"},

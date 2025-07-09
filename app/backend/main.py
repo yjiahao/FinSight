@@ -7,6 +7,7 @@ from app.backend.api.endpoints.v1 import router
 from app.backend.core.config import settings
 
 from app.backend.services.session_manager import SessionManager
+from app.backend.chatbot.InvestingChatBot import InvestingChatBot
 
 # add app lifespan
 @asynccontextmanager
@@ -15,6 +16,9 @@ async def lifespan(app: FastAPI):
 
     # create a global instance of the session manager
     app.state.session_manager = SessionManager()
+
+    # create global instance of bot, which is stateless and can be shared across sessions
+    app.state.bot = InvestingChatBot()
     
     # TODO: currently we are creating a new ChatHistory for each session, meaning the embedding model will be loaded multiple times.
     #       we should consider using a shared instance of the embedding model and chat history to save resources.
@@ -23,6 +27,7 @@ async def lifespan(app: FastAPI):
 
     # clean up and release the resources
     del app.state.session_manager
+    del app.state.bot
 
 # declare origins for CORS
 origins = [

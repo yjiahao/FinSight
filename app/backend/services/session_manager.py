@@ -1,15 +1,24 @@
 import time
+
+from langchain_huggingface import HuggingFaceEmbeddings
+
+from typing import Dict, Tuple
+
 from app.backend.chatbot.InvestingChatBot import InvestingChatBot
+from app.backend.chatbot.ChatHistory import ChatHistory
 
 SESSION_TIMEOUT_SECONDS = 30 * 60  # 30 minutes
 
 class SessionManager:
     def __init__(self):
-        # sessions: session_id -> (InvestingChatBot, last_access_time)
-        self.sessions = {}
+        # sessions: session_id -> (ChatHistory, last_access_time)
+        self.sessions: Dict[str, Tuple[ChatHistory, str]] = {}
+
+        # intialize embedding model to embed user messages: one embedding model for all sessions
+        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
     # this method should be called everytime user calls the chat endpoint from the frontend
-    def get_or_create_bot(self, session_id: str) -> InvestingChatBot:
+    def get_or_create_history(self, session_id: str) -> ChatHistory:
         '''
         Get an existing bot for the session or create a new one if it doesn't exist.
 
@@ -23,26 +32,13 @@ class SessionManager:
         # Clean up expired sessions
         self.cleanup_expired_sessions(now)
         if session_id in self.sessions:
-            bot, _ = self.sessions[session_id]
-            self.sessions[session_id] = (bot, now)  # update last access time
-            return bot
+            history, _ = self.sessions[session_id]
+            self.sessions[session_id] = (history, now)  # update last access time
+            return history
         else:
-            bot = InvestingChatBot(session_id=session_id)
-            self.sessions[session_id] = (bot, now)
-            return bot
-
-    def remove_bot(self, session_id: str) -> None:
-        '''
-        Remove the bot associated with the session ID.
-
-        Args:
-            session_id (str): The unique identifier for the session.
-
-        Returns:
-            None
-        '''
-        if session_id in self.sessions:
-            del self.sessions[session_id]
+            history = ChatHistory(session_id=session_id, embeddings=self.embeddings)
+            self.sessions[session_id] = (history, now)
+            return history
 
     def cleanup_expired_sessions(self, now: float):
         '''
@@ -60,4 +56,7 @@ class SessionManager:
             if now - last_access > SESSION_TIMEOUT_SECONDS
         ]
         for session_id in expired:
+            # Clear the chat history for the expired session
+            self.sessions[session_id][0].clear_history()
+            # delete session from state
             del self.sessions[session_id]
