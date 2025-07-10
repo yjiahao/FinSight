@@ -5,7 +5,8 @@ import ChatMessage from "./ChatMessage";
 import ChatBar from "./ChatBar";
 import ChatHeader from "./ChatHeader";
 
-import { CHAT_URL } from "../constants";
+import { CHAT_POST_URL } from "../constants";
+import { CHAT_HISTORY_URL } from "../constants";
 
 import "../App.css";
 
@@ -18,29 +19,90 @@ interface Message {
 }
 
 function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([
-    // {
-    //   id: "1",
-    //   text: "Hello! How can I help you today?",
-    //   isOutgoing: false,
-    //   timestamp: "12:00 PM",
-    //   date: "15/06/2025",
-    // },
-    // {
-    //   id: "2",
-    //   text: "I need help with my investment portfolio",
-    //   isOutgoing: true,
-    //   timestamp: "12:01 PM",
-    //   date: "15/06/2025",
-    // },
-  ]);
-
+  const navigate = useNavigate();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Load chat history when component mounts
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
+
+  const loadChatHistory = async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${CHAT_POST_URL}/history`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Convert backend format to frontend Message format
+        const formattedMessages: Message[] = data.messages.map(
+          (msg: any, index: number) => ({
+            id: `history-${index}`,
+            text: msg.content,
+            isOutgoing: msg.role === "user",
+            timestamp: new Date().toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            date: new Date().toLocaleDateString("en-GB"),
+          })
+        );
+
+        setMessages(formattedMessages);
+      } else if (response.status === 401) {
+        // Token expired, redirect to login
+        localStorage.removeItem("access_token");
+        navigate("/login");
+      } else {
+        console.error("Failed to load chat history");
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Clear chat history
+  const clearChatHistory = async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${CHAT_HISTORY_URL}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Failed to clear chat history:", error);
+    }
+  };
 
   // stream response from server
   const streamResponse = async (message: string) => {
@@ -54,7 +116,7 @@ function ChatInterface() {
     }
 
     try {
-      const response = await fetch(CHAT_URL, {
+      const response = await fetch(CHAT_POST_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -164,21 +226,42 @@ function ChatInterface() {
     }
   };
 
+  // Show loading state while fetching history
+  if (isLoadingHistory) {
+    return (
+      <div className="d-flex justify-content-center align-items-center h-100">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading chat history...</span>
+        </div>
+        <span className="ms-2 text-muted">Loading your conversation...</span>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {/* <ChatHeader></ChatHeader> */}
+    <div className="d-flex flex-column h-100">
+      {/* Optional: Chat Header with clear button */}
+      <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <h6 className="mb-0 text-muted">FinSight Bot</h6>
+        <button
+          onClick={clearChatHistory}
+          className="btn btn-outline-danger btn-sm"
+          title="Clear chat history"
+        >
+          <i className="bi bi-trash"></i> Clear
+        </button>
+      </div>
+
       {/* Messages Container */}
       <div
-        className="pt-3 pe-3"
+        className="flex-grow-1 pt-3 pe-3"
         style={{
           position: "relative",
-          height: "80vh",
           overflowY: "auto",
           overflowX: "hidden",
         }}
       >
         {/* Messages render in the scrollable container */}
-        {/* function to render messages. if no messages, then render animation to encourage user to type something */}
         {(() => {
           if (messages.length === 0) {
             return (
@@ -189,7 +272,7 @@ function ChatInterface() {
                     style={{ fontSize: "3rem", color: "#6c757d" }}
                   ></i>
                 </div>
-                <h5 className="text-muted mb-2">No messages yet</h5>
+                <h5 className="text-muted mb-2">Start a new conversation</h5>
                 <p className="text-muted small">
                   <span className="typing-effect">
                     Ask me about stocks, market trends, or investment
@@ -215,7 +298,9 @@ function ChatInterface() {
       </div>
 
       {/* ChatBar Component */}
-      <ChatBar messages={messages} onSendMessage={handleSendMessage} />
+      <div className="border-top">
+        <ChatBar messages={messages} onSendMessage={handleSendMessage} />
+      </div>
     </div>
   );
 }

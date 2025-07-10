@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 
+from langchain.schema import HumanMessage, AIMessage
+
 from app.backend.models.chat import Message
 from app.backend.services.chat_service import generate_chat_response
 from app.backend.services.auth_service import get_current_user
 
 router = APIRouter()
 
+# endpoint to post to for generating chat responses
 @router.post("/chat", tags=["chat"])
 async def chat(
     request: Request,
@@ -27,3 +30,38 @@ async def chat(
         await generate_chat_response(bot, chat_history, message.content),
         media_type="application/json"
     )
+
+# endpoint to get the chat history for the current user session
+@router.get("/chat/history")
+async def get_chat_history(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user's chat history for frontend display."""
+    session_manager = request.app.state.session_manager
+    # Use user ID from JWT token instead of session ID
+    chat_history = session_manager.get_or_create_history(str(current_user["id"]))
+    
+    # Get messages from RedisChatMessageHistory (for persistence)
+    messages = []
+    for msg in chat_history.chat_message_history.messages:
+        messages.append({
+            "role": "user" if isinstance(msg, HumanMessage) else "assistant",
+            "content": msg.content,
+            "timestamp": getattr(msg, 'timestamp', None)
+        })
+    
+    return {"messages": messages}
+
+# endpoint to clear chat history for the current user session
+@router.delete("/chat/history")
+async def clear_chat_history(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    """Clear user's chat history."""
+    session_manager = request.app.state.session_manager
+    # Use user ID from JWT token instead of session ID
+    session_manager.clear_history(str(current_user["id"]))
+    
+    return {"message": "Chat history cleared successfully."}

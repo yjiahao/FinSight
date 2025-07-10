@@ -43,8 +43,13 @@ class ChatHistory:
 
     def clear_history(self):
         """Clear the chat history for the session."""
+        # clear chat message history
         self.chat_message_history.clear()
-        self.vector_store.clear()
+        
+        # clear vector store documents
+        keys = self.redis_client.keys(f"{self.session_id}:*")
+        if keys:
+            self.redis_client.delete(*keys)
 
     def retrieve(self, query: str, num_messages: int=5):
         """Retrieve the last `num_messages` messages from the chat history."""

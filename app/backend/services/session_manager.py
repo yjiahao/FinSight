@@ -39,6 +39,20 @@ class SessionManager:
             history = ChatHistory(session_id=session_id, embeddings=self.embeddings)
             self.sessions[session_id] = (history, now)
             return history
+        
+    def clear_history(self, session_id: str):
+        '''
+        Clear the chat history for a given session.
+
+        Args:
+            session_id (str): The unique identifier for the session.
+
+        Returns:
+            None
+        '''
+        if session_id in self.sessions:
+            history, _ = self.sessions[session_id]
+            history.clear_history()
 
     def cleanup_expired_sessions(self, now: float):
         '''
@@ -56,7 +70,5 @@ class SessionManager:
             if now - last_access > SESSION_TIMEOUT_SECONDS
         ]
         for session_id in expired:
-            # Clear the chat history for the expired session
-            self.sessions[session_id][0].clear_history()
             # delete session from state
             del self.sessions[session_id]
