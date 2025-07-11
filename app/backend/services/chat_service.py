@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 
 from app.backend.chatbot.ChatHistory import ChatHistory
 from app.backend.chatbot.InvestingChatBot import InvestingChatBot
-from app.backend.speech_to_text.speech_to_text import SpeechToTextService
+from app.backend.speech_to_text.speech_to_text import SpeechToText
 
 async def generate_chat_response(
     bot: InvestingChatBot,
@@ -29,7 +29,7 @@ async def generate_chat_response(
 async def generate_chat_response_audio(
     bot: InvestingChatBot,
     chat_history: ChatHistory,
-    speech_to_text_service: SpeechToTextService,
+    speech_to_text_service: SpeechToText,
     filename: str,
     audio_file: bytes
 ) -> AsyncGenerator[str, None]:

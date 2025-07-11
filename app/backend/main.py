@@ -8,7 +8,7 @@ from app.backend.core.config import settings
 
 from app.backend.services.session_manager import SessionManager
 from app.backend.chatbot.InvestingChatBot import InvestingChatBot
-from app.backend.speech_to_text.speech_to_text import SpeechToTextService
+from app.backend.speech_to_text.speech_to_text import SpeechToText
 
 from dotenv import load_dotenv
 
@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     app.state.bot = InvestingChatBot()
 
     # create global instance of speech to text service
-    app.state.speech_to_text_service = SpeechToTextService()
+    app.state.speech_to_text_service = SpeechToText()
     
     yield
 

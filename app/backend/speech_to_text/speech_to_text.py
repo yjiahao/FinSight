@@ -3,7 +3,7 @@ from groq.types.audio.translation import Translation
 
 import os
 
-class SpeechToTextService:
+class SpeechToText:
     def __init__(self):
         self.client = Groq(
             api_key=os.getenv('GROQ_API_KEY'),
