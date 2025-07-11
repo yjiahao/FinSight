@@ -8,10 +8,12 @@ from app.backend.models.chat import Message
 from app.backend.services.chat_service import generate_chat_response, generate_chat_response_audio
 from app.backend.services.auth_service import get_current_user
 
-router = APIRouter()
+router = APIRouter(
+    tags=["chat"],
+)
 
 # endpoint to post to for generating chat responses
-@router.post("/chat", tags=["chat"])
+@router.post("/chat")
 async def chat(
     request: Request,
     message: Message,
@@ -33,7 +35,7 @@ async def chat(
     )
 
 # endpoint to post to for taking in audio messages and generating chat responses
-@router.post("/chat/audio", tags=["chat"])
+@router.post("/chat/audio")
 async def chat_audio(
     request: Request,
     audio_file: UploadFile,
