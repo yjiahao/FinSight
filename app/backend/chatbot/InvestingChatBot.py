@@ -5,10 +5,6 @@ from .IntentParser import IntentParser
 from .SearchAgent import SearchAgent
 from .TutorAgent import TutorAgent
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # main class that integrates all components of the investing chatbot
 class InvestingChatBot:
     def __init__(self):

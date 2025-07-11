@@ -8,6 +8,11 @@ from app.backend.core.config import settings
 
 from app.backend.services.session_manager import SessionManager
 from app.backend.chatbot.InvestingChatBot import InvestingChatBot
+from app.backend.speech_to_text.speech_to_text import SpeechToTextService
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # add app lifespan
 @asynccontextmanager
@@ -19,15 +24,16 @@ async def lifespan(app: FastAPI):
 
     # create global instance of bot, which is stateless and can be shared across sessions
     app.state.bot = InvestingChatBot()
+
+    # create global instance of speech to text service
+    app.state.speech_to_text_service = SpeechToTextService()
     
-    # TODO: currently we are creating a new ChatHistory for each session, meaning the embedding model will be loaded multiple times.
-    #       we should consider using a shared instance of the embedding model and chat history to save resources.
-    #       this will require some refactoring of the ChatHistory class to allow for shared instances
     yield
 
     # clean up and release the resources
     del app.state.session_manager
     del app.state.bot
+    del app.state.speech_to_text_service
 
 # declare origins for CORS
 origins = [
