@@ -38,10 +38,17 @@ function ChatPage() {
           </div>
         </div>
 
-        {/* Chat Interface - Full width on mobile (goes below), 30% on large screens */}
-        <div className="col-12 col-lg-4 order-2 order-lg-2">
+        {/* Chat Interface column */}
+        <div
+          className="col-12 col-lg-4 order-2 order-lg-2 d-flex flex-column"
+          style={{
+            height: "calc(100vh - 80px)" /* Subtract navbar height */,
+            maxHeight: "calc(100vh - 80px)",
+            overflow: "hidden" /* Important! */,
+          }}
+        >
           <div
-            className="h-100 p-3"
+            className="h-100 p-3 d-flex flex-column"
             style={{
               background: "#ffffff",
               borderLeft: "2px solid #ccc",
