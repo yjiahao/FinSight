@@ -23,7 +23,7 @@ async def generate_chat_response(
     '''
     async def response_generator():
         async for token in bot.prompt(message, chat_history):
-            yield json.dumps({"response": token}) + "\n"
+            yield json.dumps({"response": token, "role": "assistant"}) + "\n"
     return response_generator()
 
 async def generate_chat_response_audio(

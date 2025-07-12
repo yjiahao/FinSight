@@ -206,6 +206,131 @@ function ChatInterface() {
     }
   };
 
+  // stream audio response from server
+  const streamAudioResponse = async (audioBlob: Blob, filename: string) => {
+    const controller = new AbortController();
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      // Create FormData to send the audio file
+      const formData = new FormData();
+      formData.append("audio_file", audioBlob, filename);
+
+      const response = await fetch(`${CHAT_POST_URL}/audio`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("access_token");
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.body) return;
+
+      // Setup streaming
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      // Track state
+      let transcriptionProcessed = false;
+      let botMessageId = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          try {
+            console.log("Received line:", line);
+            const json = JSON.parse(line);
+
+            // STEP 1: Handle the user's transcribed message
+            if (json.role === "user" && !transcriptionProcessed) {
+              transcriptionProcessed = true;
+              botMessageId = Date.now().toString();
+
+              // Add BOTH the user's message and the bot's placeholder in ONE update
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: Date.now().toString() + "-user",
+                  text: json.response,
+                  isOutgoing: true,
+                  timestamp: new Date().toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  date: new Date().toLocaleDateString("en-GB"),
+                },
+                {
+                  id: botMessageId,
+                  text: "",
+                  isOutgoing: false,
+                  timestamp: new Date().toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  date: new Date().toLocaleDateString("en-GB"),
+                },
+              ]);
+            }
+            // STEP 2: Handle the bot's response tokens
+            else if (json.role === "assistant") {
+              const newContent = json.response;
+
+              // Update the bot message with each new token
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === botMessageId
+                    ? { ...msg, text: msg.text + newContent }
+                    : msg
+                )
+              );
+            }
+          } catch (err) {
+            console.error("Failed to parse:", line);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in streamAudioResponse:", error);
+      // Show error message
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          text: "Sorry, there was an error processing your audio.",
+          isOutgoing: false,
+          timestamp: new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          date: new Date().toLocaleDateString("en-GB"),
+        },
+      ]);
+    }
+  };
+
   // Handle new messages from ChatBar
   const handleSendMessage = (text: string) => {
     if (text.trim()) {
@@ -224,6 +349,11 @@ function ChatInterface() {
 
       streamResponse(text);
     }
+  };
+
+  // handle sending audio messages
+  const handleSendAudio = (audioBlob: Blob, filename: string) => {
+    streamAudioResponse(audioBlob, filename);
   };
 
   // Show loading state while fetching history
@@ -259,6 +389,7 @@ function ChatInterface() {
           position: "relative",
           overflowY: "auto",
           overflowX: "hidden",
+          minHeight: 0,
         }}
       >
         {/* Messages render in the scrollable container */}
@@ -299,7 +430,11 @@ function ChatInterface() {
 
       {/* ChatBar Component */}
       <div className="border-top">
-        <ChatBar messages={messages} onSendMessage={handleSendMessage} />
+        <ChatBar
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          onSendAudio={handleSendAudio}
+        />
       </div>
     </div>
   );
