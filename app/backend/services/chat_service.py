@@ -45,9 +45,12 @@ async def generate_chat_response_audio(
     '''
     # transcribe the audio file to text
     transcription: str = speech_to_text_service.transcribe(audio_file, filename)
-    
-    # generate chat response based on the transcription
+
     async def response_generator():
+        # First yield the transcription to the frontend
+        yield json.dumps({"response": transcription, "role": "user"}) + "\n"
+
+        # Then yield the bot response tokens
         async for token in bot.prompt(transcription, chat_history):
-            yield json.dumps({"response": token}) + "\n"
+            yield json.dumps({"response": token, "role": "assistant"}) + "\n"
     return response_generator()

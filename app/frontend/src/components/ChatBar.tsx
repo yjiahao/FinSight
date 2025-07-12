@@ -14,6 +14,7 @@ interface ChatBarProps {
 }
 
 function ChatBar({ messages, onSendMessage }: ChatBarProps) {
+  // TODO: integrate the voice recording feature here, need some way for frontend to receive the transcribed user's message from the backend (maybe yield the transcribed message)
   const [inputValue, setInputValue] = useState("");
 
   const handleSendMessage = () => {
